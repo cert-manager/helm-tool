@@ -185,9 +185,12 @@ func ParseComment(comment string) Comments {
 		}
 	}
 
-	if currentSection.Type != CommentTypeUnknown {
-		currentComment.Sections = append(currentComment.Sections, currentSection)
+	// Always include a comment section
+	if currentSection.Type == CommentTypeUnknown {
+		currentSection.Type = CommentTypeText
 	}
+
+	currentComment.Sections = append(currentComment.Sections, currentSection)
 
 	if !currentComment.Empty() {
 		comments = append(comments, currentComment)

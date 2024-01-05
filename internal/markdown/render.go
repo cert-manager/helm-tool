@@ -52,7 +52,9 @@ func renderCommentAsMarkdown(comment parser.Comment) string {
 		case parser.CommentTypeCode:
 			str = renderStringAsCodeBlock(str)
 		case parser.CommentTypeText:
-			str = fmt.Sprintf("<p>%s</p>", strings.ReplaceAll(str, "\n\n", "</p><p>"))
+			if strings.TrimSpace(str) != "" {
+				str = fmt.Sprintf("<p>%s</p>", strings.ReplaceAll(str, "\n\n", "</p><p>"))
+			}
 		default:
 			continue
 		}
