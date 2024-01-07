@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/thatsmrtalbot/helm-docgen/internal/parser"
+	"github.com/thatsmrtalbot/helm-docgen/heuristics"
+	"github.com/thatsmrtalbot/helm-docgen/parser"
 )
 
 func RenderDocument(document *parser.Document) string {
@@ -35,23 +36,24 @@ func renderSectionHeader(section parser.Section) string {
 		return ""
 	}
 
-	if section.Description == "" {
+	description := renderCommentAsMarkdown(section.Description)
+	if description == "" {
 		return fmt.Sprintf("\n### %s\n", section.Name)
 	}
 
-	return fmt.Sprintf("\n### %s\n%s\n", section.Name, section.Description)
+	return fmt.Sprintf("\n### %s\n%s\n", section.Name, description)
 }
 
 func renderCommentAsMarkdown(comment parser.Comment) string {
 	var sb strings.Builder
 
-	for _, section := range comment.Sections {
+	for _, section := range comment.Segments {
 		str := section.String()
 
 		switch section.Type {
-		case parser.CommentTypeCode:
+		case heuristics.ContentTypeYaml:
 			str = renderStringAsCodeBlock(str)
-		case parser.CommentTypeText:
+		case heuristics.ContentTypeText:
 			if strings.TrimSpace(str) != "" {
 				str = fmt.Sprintf("<p>%s</p>", strings.ReplaceAll(str, "\n\n", "</p><p>"))
 			}

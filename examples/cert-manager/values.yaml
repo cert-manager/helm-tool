@@ -6,7 +6,7 @@
 
 global:
   # Reference to one or more secrets to be used when pulling images
-  # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
   # - name: "image-pull-secret"
 
@@ -15,9 +15,9 @@ global:
   # For these resources, you have to add the labels in the template in the cert-manager custom resource:
   #
   # eg. podTemplate/ ingressTemplate in ACMEChallengeSolverHTTP01Ingress
-  #    Ref: https://cert-manager.io/docs/reference/api-docs/#acme.cert-manager.io/v1.ACMEChallengeSolverHTTP01Ingress
+  #    ref: https://cert-manager.io/docs/reference/api-docs/#acme.cert-manager.io/v1.ACMEChallengeSolverHTTP01Ingress
   # eg. secretTemplate in CertificateSpec
-  #    Ref: https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+  #    ref: https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
   commonLabels: {}
   # team_name: dev
 
@@ -26,7 +26,7 @@ global:
   rbac:
     # Create RBAC rules
     create: true
-    # Aggregate ClusterRoles to Kubernetes default user-facing roles. Ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles
+    # Aggregate ClusterRoles to Kubernetes default user-facing roles. ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles
     aggregateClusterRoles: true
 
   podSecurityPolicy:
@@ -214,7 +214,7 @@ resources: {}
   #   memory: 32Mi
 
 # Pod Security Context
-# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 # +docs:property
 securityContext:
   runAsNonRoot: true
@@ -222,7 +222,7 @@ securityContext:
     type: RuntimeDefault
 
 # Container Security Context to be set on the controller component container
-# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 # +docs:property
 containerSecurityContext:
   allowPrivilegeEscalation: false
@@ -442,7 +442,7 @@ webhook:
   strategy: {}
 
   # Pod Security Context to be set on the webhook component Pod
-  # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  # Rref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   # +docs:property
   securityContext:
     runAsNonRoot: true
@@ -465,7 +465,7 @@ webhook:
     # maxUnavailable: 1
 
   # Container Security Context to be set on the webhook component container
-  # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   # +docs:property
   containerSecurityContext:
     allowPrivilegeEscalation: false
@@ -510,7 +510,7 @@ webhook:
     #   memory: 32Mi
 
   # Liveness probe values
-  # Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
+  # ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
   #
   # +docs:property
   livenessProbe:
@@ -521,7 +521,7 @@ webhook:
     timeoutSeconds: 1
 
   # Readiness probe values
-  # Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
+  # ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes
   #
   # +docs:property
   readinessProbe:
@@ -684,7 +684,7 @@ cainjector:
   strategy: {}
 
   # Pod Security Context to be set on the cainjector component Pod
-  # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   securityContext:
     runAsNonRoot: true
     seccompProfile:
@@ -706,7 +706,7 @@ cainjector:
     # maxUnavailable: 1
 
   # Container Security Context to be set on the cainjector component container
-  # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   # +docs:property
   containerSecurityContext:
     allowPrivilegeEscalation: false
@@ -839,7 +839,7 @@ startupapicheck:
   enabled: true
 
   # Pod Security Context to be set on the startupapicheck component Pod
-  # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   # +docs:property
   securityContext:
     runAsNonRoot: true
@@ -847,7 +847,7 @@ startupapicheck:
       type: RuntimeDefault
 
   # Container Security Context to be set on the controller component container
-  # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   # +docs:property
   containerSecurityContext:
     allowPrivilegeEscalation: false

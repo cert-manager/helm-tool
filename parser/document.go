@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/thatsmrtalbot/helm-docgen/heuristics"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,7 +23,7 @@ type Document struct {
 
 type Section struct {
 	Name        string
-	Description string
+	Description Comment
 	Properties  []Property
 }
 
@@ -31,6 +32,13 @@ type Property struct {
 	Description Comment
 	Type        string
 	Default     string
+}
+
+type Node struct {
+	Path         Path
+	HeadComments []Comment
+	FootComment  []Comment
+	RawNode      *yaml.Node
 }
 
 func Load(filename string) (*Document, error) {
@@ -47,11 +55,11 @@ func Load(filename string) (*Document, error) {
 	document := Document{Sections: make([]Section, 1)}
 	node := Node{
 		RawNode:      &root,
-		HeadComments: ParseComment(root.HeadComment),
-		FootComment:  ParseComment(root.FootComment),
+		HeadComments: parseComments(root.HeadComment),
+		FootComment:  parseComments(root.FootComment),
 	}
 	err = walk(node, func(node Node) (bool, error) {
-		comment, _ := node.HeadComments.Pop()
+		comment := pop(&node.HeadComments)
 
 		parseCommentsOntoDocument(node.Path.Parent(), &document, node.HeadComments)
 		defer parseCommentsOntoDocument(node.Path.Parent(), &document, node.FootComment)
@@ -65,7 +73,7 @@ func Load(filename string) (*Document, error) {
 		// node, but can be a map or sequence if the user uses the
 		// +docs:property tag (or if they have no values).
 		if !isEndNode(node, comment) {
-			parseCommentsOntoDocument(node.Path.Parent(), &document, Comments{comment})
+			parseCommentsOntoDocument(node.Path.Parent(), &document, []Comment{comment})
 			return false, nil
 		}
 
@@ -83,34 +91,34 @@ func Load(filename string) (*Document, error) {
 	return &document, err
 }
 
-func parseCommentsOntoDocument(path Path, document *Document, comments Comments) {
+func parseCommentsOntoDocument(path Path, document *Document, comments []Comment) {
 	for _, comment := range comments {
 		switch {
 		case comment.Tags.GetBool(TagSection):
 			document.Sections = append(document.Sections, Section{
 				Name:        comment.Tags.GetString(TagSection),
-				Description: comment.String(),
+				Description: comment,
 			})
 		case comment.Tags.GetBool(TagProperty):
 			// Search for a code block in the comments, we can try and infer
 			// information from it
 			codeIdx := -1
-			for i, section := range comment.Sections {
-				if section.Type == CommentTypeCode {
+			for i, segment := range comment.Segments {
+				if segment.Type == heuristics.ContentTypeYaml {
 					codeIdx = i
 				}
 			}
 
 			parsedNode := Node{
-				HeadComments: Comments{comment},
+				HeadComments: []Comment{comment},
 			}
 
 			if codeIdx != -1 {
 				parsedSuccessfully := false
 
-				codeSection := comment.Sections[codeIdx]
+				codeSegment := comment.Segments[codeIdx]
 				var node yaml.Node
-				yaml.Unmarshal([]byte(codeSection.String()), &node)
+				yaml.Unmarshal([]byte(codeSegment.String()), &node)
 
 				// Document node
 				if len(node.Content) != 0 {
@@ -130,12 +138,12 @@ func parseCommentsOntoDocument(path Path, document *Document, comments Comments)
 				// Remove the code block from the comment
 				if parsedSuccessfully {
 					newComment := Comment{Tags: comment.Tags}
-					for i, section := range comment.Sections {
+					for i, segment := range comment.Segments {
 						if i == codeIdx {
 							continue
 						}
 
-						newComment.Sections = append(newComment.Sections, section)
+						newComment.Segments = append(newComment.Segments, segment)
 					}
 					comment = newComment
 				}
@@ -164,13 +172,6 @@ func parseCommentsOntoDocument(path Path, document *Document, comments Comments)
 	}
 }
 
-type Node struct {
-	Path         Path
-	HeadComments Comments
-	FootComment  Comments
-	RawNode      *yaml.Node
-}
-
 func walk(root Node, fn func(node Node) (bool, error)) error {
 	// Call the function for every node, we the method can decide to stop
 	// walking this branch as part of this call
@@ -189,8 +190,8 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 		for i, node := range root.RawNode.Content {
 			n := Node{
 				Path:         root.Path.WithIndex(i),
-				HeadComments: ParseComment(root.RawNode.HeadComment),
-				FootComment:  ParseComment(root.RawNode.FootComment),
+				HeadComments: parseComments(root.RawNode.HeadComment),
+				FootComment:  parseComments(root.RawNode.FootComment),
 				RawNode:      node,
 			}
 
@@ -205,8 +206,8 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 
 			n := Node{
 				Path:         root.Path.WithProperty(keyNode.Value),
-				HeadComments: ParseComment(keyNode.HeadComment),
-				FootComment:  ParseComment(keyNode.FootComment),
+				HeadComments: parseComments(keyNode.HeadComment),
+				FootComment:  parseComments(keyNode.FootComment),
 				RawNode:      valueNode,
 			}
 
@@ -219,8 +220,8 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 			n := Node{
 				Path:         root.Path,
 				RawNode:      node,
-				HeadComments: ParseComment(node.HeadComment),
-				FootComment:  ParseComment(node.FootComment),
+				HeadComments: parseComments(node.HeadComment),
+				FootComment:  parseComments(node.FootComment),
 			}
 
 			if err := walk(n, fn); err != nil {
@@ -230,8 +231,8 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 	case yaml.AliasNode:
 		n := Node{
 			Path:         root.Path,
-			HeadComments: ParseComment(root.RawNode.HeadComment),
-			FootComment:  ParseComment(root.RawNode.FootComment),
+			HeadComments: parseComments(root.RawNode.HeadComment),
+			FootComment:  parseComments(root.RawNode.FootComment),
 			RawNode:      root.RawNode.Alias,
 		}
 
@@ -283,6 +284,31 @@ func getDefaultValue(n Node, c Comment) string {
 	encoder.SetIndent(2)
 	encoder.Encode(clone)
 	return strings.TrimSpace(sb.String())
+}
+
+func pop[T any](s *[]T) T {
+	var def T
+	l := len(*s)
+	if l == 0 {
+		return def
+	}
+
+	v := (*s)[l-1]
+	*s = (*s)[:l-1]
+
+	return v
+}
+
+func shift[T any](s *[]T) T {
+	var def T
+	if len(*s) == 0 {
+		return def
+	}
+
+	v := (*s)[0]
+	*s = (*s)[1:]
+
+	return v
 }
 
 func getTypeOf(node Node, comment Comment) string {

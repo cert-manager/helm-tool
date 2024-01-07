@@ -4,11 +4,11 @@ import (
 	"strings"
 )
 
-type Tags map[string][]string
+type tags map[string][]string
 
-func (t *Tags) Push(value string) {
+func (t *tags) Push(value string) {
 	if *t == nil {
-		*t = make(Tags)
+		*t = make(tags)
 	}
 
 	trimmed := strings.TrimSpace(value)
@@ -16,7 +16,7 @@ func (t *Tags) Push(value string) {
 	(*t)[key] = append((*t)[key], value)
 }
 
-func (t Tags) GetBool(key string) bool {
+func (t tags) GetBool(key string) bool {
 	result := false
 
 	for _, value := range t[key] {
@@ -33,7 +33,7 @@ func (t Tags) GetBool(key string) bool {
 	return result
 }
 
-func (t Tags) GetString(key string) string {
+func (t tags) GetString(key string) string {
 	result := ""
 	for _, value := range t[key] {
 		result = value

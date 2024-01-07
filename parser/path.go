@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-type PathComponent interface {
+type pathComponent interface {
 	Append(idx int, path io.Writer)
 }
 
-type StringPathComponent string
+type stringPathComponent string
 
-func (s StringPathComponent) Append(idx int, w io.Writer) {
+func (s stringPathComponent) Append(idx int, w io.Writer) {
 	if strings.Contains(string(s), ".") {
 		fmt.Fprintf(w, "[%q]", s)
 	} else if idx == 0 {
@@ -22,20 +22,20 @@ func (s StringPathComponent) Append(idx int, w io.Writer) {
 	}
 }
 
-type IndexPathComponent int
+type indexPathComponent int
 
-func (i IndexPathComponent) Append(idx int, w io.Writer) {
+func (i indexPathComponent) Append(idx int, w io.Writer) {
 	fmt.Fprintf(w, "[%d]", i)
 }
 
-type Path []PathComponent
+type Path []pathComponent
 
 func (p Path) WithProperty(part string) Path {
-	return append(p, StringPathComponent(part))
+	return append(p, stringPathComponent(part))
 }
 
 func (p Path) WithIndex(idx int) Path {
-	return append(p, IndexPathComponent(idx))
+	return append(p, indexPathComponent(idx))
 }
 
 func (p Path) Parent() Path {

@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/thatsmrtalbot/helm-docgen/internal/markdown"
-	"github.com/thatsmrtalbot/helm-docgen/internal/parser"
+	"github.com/thatsmrtalbot/helm-docgen/markdown"
+	"github.com/thatsmrtalbot/helm-docgen/parser"
 )
 
 var (
