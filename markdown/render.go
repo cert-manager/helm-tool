@@ -23,7 +23,7 @@ func RenderDocument(document *parser.Document) string {
 
 		for _, prop := range section.Properties {
 			description := renderCommentAsMarkdown(prop.Description)
-			defaultValue := renderStringAsCodeBlock(prop.Default)
+			defaultValue := renderStringAsYamlCodeBlock(prop.Default)
 			fmt.Fprintf(&sb, "|`%s`|%s|`%s`|%s|\n", prop.Name, description, prop.Type, defaultValue)
 		}
 	}
@@ -52,7 +52,7 @@ func renderCommentAsMarkdown(comment parser.Comment) string {
 
 		switch section.Type {
 		case heuristics.ContentTypeYaml:
-			str = renderStringAsCodeBlock(str)
+			str = renderStringAsYamlCodeBlock(str)
 		case heuristics.ContentTypeText:
 			if strings.TrimSpace(str) != "" {
 				str = fmt.Sprintf("<p>%s</p>", strings.ReplaceAll(str, "\n\n", "</p><p>"))
@@ -68,8 +68,8 @@ func renderCommentAsMarkdown(comment parser.Comment) string {
 	return sb.String()
 }
 
-func renderStringAsCodeBlock(str string) string {
-	str = fmt.Sprintf("<pre>%s</pre>", str)
+func renderStringAsYamlCodeBlock(str string) string {
+	str = fmt.Sprintf(`<pre lang="yaml">%s</pre>`, str)
 	str = strings.ReplaceAll(str, "\n", "<br>")
 	return str
 }
