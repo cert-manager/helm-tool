@@ -18,10 +18,14 @@ Documentation can be divided up into sections through the `+docs:section` tag, f
 ```yaml
 # +docs:section=Global
 # This contains all parameters that are used by all deployments in this chart.
+
+# Foo parameter description
 foo: bar
 
 # +docs:section=Application
-# Application specific paremters
+# Application specific parameters
+
+# Baz parameter description
 baz: qux
 ```
 
@@ -36,7 +40,7 @@ This contains all parameters that are used by all deployments in this chart.
 |`foo`|<p>Foo parameter description</p>|`string`|<pre>bar</pre>|
 
 ### Application
-Application specific paremters
+Application specific parameters
 
 |property|description|type|default|
 |--|--|--|--|
@@ -52,7 +56,7 @@ For example:
 
 ```yaml
 # +docs:property
-# Property descroption here
+# Property description here
 # foo: bar
 ```
 
@@ -61,7 +65,7 @@ Would produce the following markdown:
 ```markdown
 |property|description|type|default|
 |--|--|--|--|
-|`foo`|<p>Property descroption here</p>|`string`|<pre>undefined</pre>|
+|`foo`|<p>Property description here</p>|`string`|<pre>undefined</pre>|
 ```
 
 
@@ -69,13 +73,13 @@ The detected name and type is not always correct, these can be provided using ta
 ```yaml
 # +docs:property=foo
 # +docs:type=string
-# Property descroption here
+# Property description here
 ```
 
 ```markdown
 |property|description|type|default|
 |--|--|--|--|
-|`foo`|<p>Property descroption here</p>|`string`|<pre>undefined</pre>|
+|`foo`|<p>Property description here</p>|`string`|<pre>undefined</pre>|
 ```
 
 ### Tags
