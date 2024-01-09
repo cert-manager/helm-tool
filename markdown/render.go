@@ -18,14 +18,27 @@ func RenderDocument(document *parser.Document) string {
 
 		header := renderSectionHeader(section)
 		fmt.Fprint(&sb, header)
-		fmt.Fprint(&sb, "\n|property|description|type|default|\n")
-		fmt.Fprint(&sb, "|--|--|--|--|\n")
+
+		fmt.Fprint(&sb, "\n<table>")
+		fmt.Fprint(&sb, "\n<tr>")
+		fmt.Fprint(&sb, "\n<th>Property</th>")
+		fmt.Fprint(&sb, "\n<th>Description</th>")
+		fmt.Fprint(&sb, "\n<th>Type</th>")
+		fmt.Fprint(&sb, "\n<th>Default</th>")
+		fmt.Fprint(&sb, "\n</tr>")
 
 		for _, prop := range section.Properties {
 			description := renderCommentAsMarkdown(prop.Description)
 			defaultValue := renderStringAsYamlCodeBlock(prop.Default)
-			fmt.Fprintf(&sb, "|`%s`|%s|`%s`|%s|\n", prop.Name, description, prop.Type, defaultValue)
+
+			fmt.Fprint(&sb, "\n<tr>")
+			fmt.Fprintf(&sb, "\n<td>%s</td>", prop.Name)
+			fmt.Fprintf(&sb, "\n<td>%s\n</td>", description)
+			fmt.Fprintf(&sb, "\n<td>%s</td>", prop.Type)
+			fmt.Fprintf(&sb, "\n<td>%s\n</td>", defaultValue)
+			fmt.Fprint(&sb, "\n</tr>")
 		}
+		fmt.Fprint(&sb, "\n</table>\n")
 	}
 
 	return sb.String()
@@ -54,14 +67,16 @@ func renderCommentAsMarkdown(comment parser.Comment) string {
 		case heuristics.ContentTypeYaml:
 			str = renderStringAsYamlCodeBlock(str)
 		case heuristics.ContentTypeText:
-			if strings.TrimSpace(str) != "" {
+			if trimmed := strings.TrimSpace(str); trimmed != "" {
+				str = trimmed
 				str = fmt.Sprintf("<p>%s</p>", strings.ReplaceAll(str, "\n\n", "</p><p>"))
+				str = strings.ReplaceAll(str, "\n", "<br>\n")
+				str = strings.ReplaceAll(str, "<p>", "\n<p>\n\n")
+				str = strings.ReplaceAll(str, "</p>", "\n\n</p>")
 			}
 		default:
 			continue
 		}
-
-		str = strings.ReplaceAll(str, "\n", "<br>")
 		sb.WriteString(str)
 	}
 
@@ -69,7 +84,6 @@ func renderCommentAsMarkdown(comment parser.Comment) string {
 }
 
 func renderStringAsYamlCodeBlock(str string) string {
-	str = fmt.Sprintf(`<pre lang="yaml">%s</pre>`, str)
-	str = strings.ReplaceAll(str, "\n", "<br>")
+	str = fmt.Sprintf("\n\n<pre lang=\"yaml\">%s</pre>\n", str)
 	return str
 }
