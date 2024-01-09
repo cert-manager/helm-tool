@@ -6,7 +6,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/thatsmrtalbot/helm-docgen/parser"
+	"github.com/cert-manager/helm-docgen/parser"
 )
 
 var headerSearch = regexp.MustCompile(`(?m)^##\s+Parameters\s*$`)

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cert-manager/helm-docgen/markdown"
+	"github.com/cert-manager/helm-docgen/parser"
 	"github.com/spf13/cobra"
-	"github.com/thatsmrtalbot/helm-docgen/markdown"
-	"github.com/thatsmrtalbot/helm-docgen/parser"
 )
 
 var (
