@@ -46,6 +46,8 @@ func RecutNewLines(lines []string) []string {
 		}
 
 		lineWithoutLeadingSpaces := trimSpaceRight(strings.TrimPrefix(line, leadingSpaces))
+		previousLineLeadingSpacesCount := 0
+		currentLineLeadingSpacesCount := countLeadingSpaces(lineWithoutLeadingSpaces)
 
 		// If we are further indented then the start of the comment, we assume
 		// the new line was intended
@@ -92,7 +94,16 @@ func RecutNewLines(lines []string) []string {
 
 		// If the line is intentionally short, then the new line is probably
 		// intentional
-		if c := firstChar(trimmedLine); unicode.IsUpper(c) && len(trimmedLine) < 60 {
+		if c := firstChar(trimmedLine); unicode.IsUpper(c) && len(trimmedLine) < 50 {
+			if len(currentLine) != 0 {
+				parsedLines = append(parsedLines, strings.Join(currentLine, " "))
+			}
+			parsedLines = append(parsedLines, lineWithoutLeadingSpaces)
+			currentLine = nil
+			continue
+		}
+
+		if currentLineLeadingSpacesCount != previousLineLeadingSpacesCount {
 			if len(currentLine) != 0 {
 				parsedLines = append(parsedLines, strings.Join(currentLine, " "))
 			}
