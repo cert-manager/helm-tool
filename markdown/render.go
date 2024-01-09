@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/thatsmrtalbot/helm-docgen/heuristics"
-	"github.com/thatsmrtalbot/helm-docgen/parser"
+	"github.com/cert-manager/helm-docgen/heuristics"
+	"github.com/cert-manager/helm-docgen/parser"
 )
 
 func RenderDocument(document *parser.Document) string {

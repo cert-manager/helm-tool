@@ -1,6 +1,6 @@
 package parser
 
-import "github.com/thatsmrtalbot/helm-docgen/heuristics"
+import "github.com/cert-manager/helm-docgen/heuristics"
 
 type Comment struct {
 	heuristics.CommentBlock

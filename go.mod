@@ -1,4 +1,4 @@
-module github.com/thatsmrtalbot/helm-docgen
+module github.com/cert-manager/helm-docgen
 
 go 1.21.5
 

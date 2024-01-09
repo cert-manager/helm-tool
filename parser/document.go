@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/thatsmrtalbot/helm-docgen/heuristics"
+	"github.com/cert-manager/helm-docgen/heuristics"
 	"gopkg.in/yaml.v3"
 )
 
