@@ -1,0 +1,26 @@
+name: release
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+  VERSION: ${{ github.ref_name }}
+
+jobs:
+  github_release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # needed for creating a PR
+      pull-requests: write # needed for creating a PR
+
+    steps:
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$VERSION" \
+            --repo="$GITHUB_REPOSITORY" \
+            --title="${VERSION}" \
+            --draft \
+            --verify-tag 
