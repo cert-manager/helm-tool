@@ -3,15 +3,19 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 
-	"github.com/cert-manager/helm-docgen/markdown"
 	"github.com/cert-manager/helm-docgen/parser"
+	"github.com/cert-manager/helm-docgen/render"
 	"github.com/spf13/cobra"
 )
 
 var (
-	valuesFile string
-	targetFile string
+	valuesFile   string
+	targetFile   string
+	templateName string
+	headerSearch = regexValue{regexp.MustCompile(`(?m)^##\s+Parameters *$`)}
+	footerSearch = regexValue{regexp.MustCompile(`(?m)^##?\s+.*$`)}
 )
 
 var Cmd = cobra.Command{
@@ -28,7 +32,7 @@ var Render = cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Println(markdown.RenderDocument(document))
+		fmt.Println(render.Render(templateName, document))
 	},
 }
 
@@ -42,7 +46,7 @@ var Inject = cobra.Command{
 			os.Exit(1)
 		}
 
-		if err := markdown.InjectIntoMarkdown(targetFile, document); err != nil {
+		if err := render.Inject(targetFile, templateName, document, headerSearch.regexp, footerSearch.regexp); err != nil {
 			fmt.Fprintf(os.Stderr, "Could inject markdown into %q: %s\n", targetFile, err)
 			os.Exit(1)
 		}
@@ -53,11 +57,37 @@ func init() {
 	Cmd.PersistentFlags().StringVarP(&valuesFile, "values", "i", "values.yaml", "values file used to generate the documentation")
 
 	Cmd.AddCommand(&Inject)
+	Inject.PersistentFlags().StringVarP(&templateName, "template", "t", "markdown-table", "template to render documentation with")
 	Inject.PersistentFlags().StringVarP(&targetFile, "output", "o", "README.md", "file to inject the generated markdown into")
+	Inject.PersistentFlags().Var(&headerSearch, "header-search", "set the regex used to match the start of the injected markdown")
+	Inject.PersistentFlags().Var(&footerSearch, "footer-search", "set the regex used to match the end of the injected markdown")
 
 	Cmd.AddCommand(&Render)
+	Render.PersistentFlags().StringVarP(&templateName, "template", "t", "markdown-table", "template to render documentation with")
 }
 
 func main() {
 	Cmd.Execute()
+}
+
+type regexValue struct {
+	regexp *regexp.Regexp
+}
+
+func (r *regexValue) String() string {
+	return r.regexp.String()
+}
+
+func (r *regexValue) Set(value string) error {
+	compiled, err := regexp.Compile("(?m)" + value)
+	if err != nil {
+		return err
+	}
+
+	r.regexp = compiled
+	return nil
+}
+
+func (r *regexValue) Type() string {
+	return "regex"
 }
