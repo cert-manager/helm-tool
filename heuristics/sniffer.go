@@ -7,13 +7,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type ContentType uint8
+type ContentType string
 
 const (
-	ContentTypeUnknown ContentType = iota
-	ContentTypeText
-	ContentTypeYaml
-	ContentTypeTag
+	ContentTypeUnknown ContentType = ""
+	ContentTypeText    ContentType = "text"
+	ContentTypeYaml    ContentType = "yaml"
+	ContentTypeTag     ContentType = "tag"
 )
 
 // ContentSniffer is used to parse lines of text to determine the content, this
@@ -170,15 +170,20 @@ func ParseCommentIntoBlocks(comment string) []CommentBlock {
 		//
 		// # This is a different comment block
 		//
-		if trimmedLine == "" && len(currentBlock.Segments) > 0 {
+		if trimmedLine == "" {
 			// Append any last segments before we are done with the block
 			if currentSegment.Type != ContentTypeUnknown {
+				completeSegment(&currentSegment)
 				currentBlock.Segments = append(currentBlock.Segments, currentSegment)
+				currentSegment = CommentBlockSegment{}
 			}
 
-			parsedBlocks = append(parsedBlocks, currentBlock)
-			currentBlock = CommentBlock{}
-			currentSegment = CommentBlockSegment{}
+			// If we have segments in the current block add them
+			if len(currentBlock.Segments) > 0 {
+				parsedBlocks = append(parsedBlocks, currentBlock)
+				currentBlock = CommentBlock{}
+			}
+
 			continue
 		}
 
@@ -188,6 +193,7 @@ func ParseCommentIntoBlocks(comment string) []CommentBlock {
 		// Sniffer tells us when to break up blocks and the type of those blocks
 		typ, isNewBlock := sniffer.SniffContentType(trimmedLineWithoutCommentCharacter)
 		if isNewBlock && currentSegment.Type != ContentTypeUnknown {
+			completeSegment(&currentSegment)
 			currentBlock.Segments = append(currentBlock.Segments, currentSegment)
 			currentSegment = CommentBlockSegment{}
 		}
@@ -198,6 +204,7 @@ func ParseCommentIntoBlocks(comment string) []CommentBlock {
 
 	// Ensure any last segments get appended to the block
 	if currentSegment.Type != ContentTypeUnknown {
+		completeSegment(&currentSegment)
 		currentBlock.Segments = append(currentBlock.Segments, currentSegment)
 	}
 
@@ -213,4 +220,15 @@ func ParseCommentIntoBlocks(comment string) []CommentBlock {
 	//   a: b
 	//
 	return append(parsedBlocks, currentBlock)
+}
+
+func completeSegment(segment *CommentBlockSegment) {
+	switch segment.Type {
+	case ContentTypeText:
+		segment.Contents = RecutNewLines(segment.Contents)
+	case ContentTypeYaml:
+		segment.Contents = trimLeadingSpaces(segment.Contents)
+	case ContentTypeTag:
+		segment.Contents = trimLeadingSpaces(segment.Contents)
+	}
 }

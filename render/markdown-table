@@ -1,0 +1,77 @@
+{{- /* Comment rendering depends on the comment type, define a helper function */}}
+{{ define "comment" }}
+{{ if eq .Type "yaml" }}
+<pre lang="yaml">
+{{- range .Contents }}
+{{ . }}
+{{- end }}
+</pre>
+{{- else if eq .Type "text" }}
+<p>
+
+{{ $firstLineInParagraph := true }}
+{{- range .Contents }}
+{{- if eq . "" }}
+
+</p>
+<p>
+
+{{ $firstLineInParagraph = true }}
+{{- else }}
+{{- if $firstLineInParagraph }}{{ . }}{{ else }}<br/>
+{{ . }}{{ end }}
+{{- $firstLineInParagraph = false }}
+{{- end }}
+{{- end }}
+
+</p>
+{{- end }}
+{{- end }}
+
+{{- /* Iterate over defined sections */}}
+{{- range .Sections }}
+
+    {{- /* Render section header */}}
+    {{- if .Name }}
+### {{ .Name }}
+    {{- end }}
+
+    {{- /* Render the description comment */}}
+    {{- range .Description.Segments }}
+        {{- template "comment" . }}
+    {{- end }}
+
+    {{- if .Properties }}
+
+<table>
+<tr>
+<th>Property</th>
+<th>Description</th>
+<th>Type</th>
+<th>Default</th>
+</tr>
+
+    {{- /* Iterate over properties within the section */}}
+    {{- range .Properties }}
+<tr>
+
+<td>{{ .Name }}</td>
+<td>
+
+{{- range .Description.Segments }}
+    {{- template "comment" . }}
+{{- end }}
+
+</td>
+<td>{{.Type}}</td>
+<td>
+
+<pre lang="yaml">{{.Default}}</pre>
+
+</td>
+
+</tr>
+    {{- end }}
+</table>
+{{ end }}
+{{- end }}

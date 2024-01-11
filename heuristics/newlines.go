@@ -38,7 +38,7 @@ func RecutNewLines(lines []string) []string {
 				previousLine = strings.Join(currentLine, " ")
 				parsedLines = append(parsedLines, previousLine)
 			}
-			if previousLine != "" {
+			if strings.TrimSpace(previousLine) != "" {
 				parsedLines = append(parsedLines, "")
 			}
 			currentLine = nil
@@ -118,6 +118,11 @@ func RecutNewLines(lines []string) []string {
 
 	if len(currentLine) != 0 {
 		parsedLines = append(parsedLines, strings.Join(currentLine, " "))
+	}
+
+	// Trim trailing new line
+	if l := len(parsedLines); l != 0 && strings.TrimSpace(parsedLines[l-1]) == "" {
+		parsedLines = parsedLines[:l-1]
 	}
 
 	return parsedLines
