@@ -28,7 +28,7 @@ type Section struct {
 }
 
 type Property struct {
-	Name        string
+	Path        Path
 	Description Comment
 	Type        string
 	Default     string
@@ -79,7 +79,7 @@ func Load(filename string) (*Document, error) {
 
 		sectionIdx := len(document.Sections) - 1
 		document.Sections[sectionIdx].Properties = append(document.Sections[sectionIdx].Properties, Property{
-			Name:        node.Path.String(),
+			Path:        node.Path,
 			Description: comment,
 			Type:        getTypeOf(node, comment),
 			Default:     getDefaultValue(node, comment),
@@ -160,9 +160,15 @@ func parseCommentsOntoDocument(path Path, document *Document, comments []Comment
 				}
 			}
 
+			path, err := ParsePath(name)
+			if err != nil {
+				log.Printf("could not parse property path %q: %s\n", name, err)
+				continue
+			}
+
 			sectionIdx := len(document.Sections) - 1
 			document.Sections[sectionIdx].Properties = append(document.Sections[sectionIdx].Properties, Property{
-				Name:        name,
+				Path:        path,
 				Description: comment,
 				Type:        getTypeOf(parsedNode, comment),
 				Default:     "undefined",
