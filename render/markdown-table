@@ -55,7 +55,7 @@
     {{- range .Properties }}
 <tr>
 
-<td>{{ .Name }}</td>
+<td>{{ .Path }}</td>
 <td>
 
 {{- range .Description.Segments }}
