@@ -1,4 +1,4 @@
-package parser
+package paths
 
 import (
 	"bytes"
@@ -43,7 +43,7 @@ func SegmentString(pc pathComponent) string {
 
 type Path []pathComponent
 
-func ParsePath(pathString string) (Path, error) {
+func Parse(pathString string) (Path, error) {
 	scanner := bytes.NewBufferString(pathString)
 
 	path := Path{}

@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/cert-manager/helm-docgen/parser"
+	"github.com/cert-manager/helm-docgen/paths"
 	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 type treeLevel struct {
-	Path     parser.Path
+	Path     paths.Path
 	Property *parser.Property
 	Children []treeLevel
 }
@@ -22,7 +23,7 @@ func (t *treeLevel) Type() parser.Type {
 
 	if len(t.Children) > 0 {
 		firstChild := t.Children[0]
-		if parser.IsArrayPathComponent(firstChild.Path.Property()) {
+		if paths.IsArrayPathComponent(firstChild.Path.Property()) {
 			return parser.TypeArray
 		}
 
@@ -32,7 +33,7 @@ func (t *treeLevel) Type() parser.Type {
 	return parser.TypeUnknown
 }
 
-func (t *treeLevel) add(path parser.Path, property parser.Property) error {
+func (t *treeLevel) add(path paths.Path, property parser.Property) error {
 	if path.Equal(t.Path) {
 		t.Property = &property
 		return nil
@@ -123,7 +124,7 @@ func Render(document *parser.Document) (string, error) {
 			properties := map[string]spec.Schema{}
 
 			for _, child := range level.Children {
-				properties[parser.SegmentString(child.Path.Property())] = spec.Schema{SchemaProps: spec.SchemaProps{
+				properties[paths.SegmentString(child.Path.Property())] = spec.Schema{SchemaProps: spec.SchemaProps{
 					Ref: spec.MustCreateRef(fmt.Sprintf("#/$defs/%s", prefixName(child.Path.String()))),
 				}}
 			}

@@ -1,4 +1,4 @@
-package parser
+package paths
 
 import (
 	"reflect"
@@ -46,13 +46,13 @@ func TestParsePath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ParsePath(tt.path)
+			got, err := Parse(tt.path)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ParsePath() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.expected) {
-				t.Errorf("ParsePath() = %v, expected %v", got, tt.expected)
+				t.Errorf("Parse() = %v, expected %v", got, tt.expected)
 			}
 		})
 	}
