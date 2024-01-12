@@ -1,4 +1,4 @@
-module github.com/cert-manager/helm-docgen
+module github.com/cert-manager/helm-tool
 
 go 1.21
 

@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cert-manager/helm-docgen/parser"
-	"github.com/cert-manager/helm-docgen/paths"
+	"github.com/cert-manager/helm-tool/parser"
+	"github.com/cert-manager/helm-tool/paths"
 	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )

@@ -22,8 +22,8 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/cert-manager/helm-docgen/linter/parsetemplates"
-	"github.com/cert-manager/helm-docgen/linter/parsetemplates/funcs_serdes"
+	"github.com/cert-manager/helm-tool/linter/parsetemplates"
+	"github.com/cert-manager/helm-tool/linter/parsetemplates/funcs_serdes"
 	"github.com/stretchr/testify/require"
 )
 

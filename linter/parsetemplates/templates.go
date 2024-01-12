@@ -25,7 +25,7 @@ import (
 	"text/template"
 	"text/template/parse"
 
-	"github.com/cert-manager/helm-docgen/linter/parsetemplates/funcs_serdes"
+	"github.com/cert-manager/helm-tool/linter/parsetemplates/funcs_serdes"
 )
 
 func ListTemplatePaths(templatesPath string) ([]string, error) {

@@ -22,8 +22,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/cert-manager/helm-docgen/linter/parsetemplates"
-	"github.com/cert-manager/helm-docgen/parser"
+	"github.com/cert-manager/helm-tool/linter/parsetemplates"
+	"github.com/cert-manager/helm-tool/parser"
 )
 
 func Lint(

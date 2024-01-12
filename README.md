@@ -4,10 +4,10 @@ Helm Docgen generates documentation for Helm charts by reading the values.yaml f
 
 ## Usage
 
-There are two commands that can be used to generate documentation, `helm-docgen render` and `helm-docgen inject`.
+There are two commands that can be used to generate documentation, `helm-tool render` and `helm-tool inject`.
 
-- `helm-docgen render` - The render command will simply render the markdown to the stdout
-- `helm-docgen inject` - The inject command will inject the generated documentation into an existing markdown file, it will look for the `## Properties` header and inject the documentation between it and the next header. This can be useful for keeping a chart README up to date.
+- `helm-tool render` - The render command will simply render the markdown to the stdout
+- `helm-tool inject` - The inject command will inject the generated documentation into an existing markdown file, it will look for the `## Properties` header and inject the documentation between it and the next header. This can be useful for keeping a chart README up to date.
 
 ## Customising the output
 

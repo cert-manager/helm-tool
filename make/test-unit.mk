@@ -17,9 +17,11 @@
 ## @category Testing
 test-unit: | $(NEEDS_GO) $(NEEDS_GOTESTSUM) $(ARTIFACTS)
 	$(GOTESTSUM) \
+		--junitfile=$(ARTIFACTS)/junit-go-e2e.xml \
+		-- \
+		-coverprofile=$(ARTIFACTS)/filtered.cov \
 		./... \
 		-- \
-		-ldflags $(go_manager_ldflags) \
-		-coverprofile cover.out
+		-ldflags $(go_manager_ldflags)
 
 	$(GO) tool cover -html=$(ARTIFACTS)/filtered.cov -o=$(ARTIFACTS)/filtered.html
