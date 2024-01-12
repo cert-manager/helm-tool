@@ -12,9 +12,9 @@ type pathComponent interface {
 	Append(idx int, path io.Writer)
 }
 
-type stringPathComponent string
+type mapPathComponent string
 
-func (s stringPathComponent) Append(idx int, w io.Writer) {
+func (s mapPathComponent) Append(idx int, w io.Writer) {
 	if strings.Contains(string(s), ".") {
 		fmt.Fprintf(w, "[%q]", s)
 	} else if idx == 0 {
@@ -24,10 +24,21 @@ func (s stringPathComponent) Append(idx int, w io.Writer) {
 	}
 }
 
-type indexPathComponent int
+type arrayPathComponent int
 
-func (i indexPathComponent) Append(idx int, w io.Writer) {
+func (i arrayPathComponent) Append(idx int, w io.Writer) {
 	fmt.Fprintf(w, "[%d]", i)
+}
+
+func IsArrayPathComponent(pc pathComponent) bool {
+	_, ok := pc.(arrayPathComponent)
+	return ok
+}
+
+func SegmentString(pc pathComponent) string {
+	sb := strings.Builder{}
+	pc.Append(0, &sb)
+	return sb.String()
 }
 
 type Path []pathComponent
@@ -40,13 +51,13 @@ func ParsePath(pathString string) (Path, error) {
 	for {
 		switch k, last, err := runesUntil(scanner, runeSet([]rune{'[', '.'})); {
 		case err == io.EOF && len(k) > 0:
-			return append(path, stringPathComponent(k)), nil
+			return append(path, mapPathComponent(k)), nil
 		case err == io.EOF && len(k) == 0:
 			return path, nil
 		case err != nil:
 			return path, err
 		case last == '[':
-			path = append(path, stringPathComponent(k))
+			path = append(path, mapPathComponent(k))
 
 			betweenBrackets, _, err := runesUntil(scanner, runeSet([]rune{']'}))
 			if err != nil {
@@ -59,21 +70,21 @@ func ParsePath(pathString string) (Path, error) {
 
 			if betweenBrackets[0] == '"' && betweenBrackets[len(betweenBrackets)-1] == '"' {
 				// betweenBrackets is a string
-				path = append(path, stringPathComponent(betweenBrackets[1:len(betweenBrackets)-1]))
+				path = append(path, mapPathComponent(betweenBrackets[1:len(betweenBrackets)-1]))
 			} else {
 				idx, err := strconv.Atoi(string(betweenBrackets))
 				if err != nil {
 					return path, fmt.Errorf("unexpected array index: %q", betweenBrackets)
 				}
 
-				path = append(path, indexPathComponent(idx))
+				path = append(path, arrayPathComponent(idx))
 			}
 
 			if r, _, e := scanner.ReadRune(); e == nil && r != '.' {
 				return path, fmt.Errorf("unexpected token %q", r)
 			}
 		case last == '.':
-			path = append(path, stringPathComponent(k))
+			path = append(path, mapPathComponent(k))
 		default:
 			return nil, fmt.Errorf("parse error: unexpected token %v", last)
 		}
@@ -81,11 +92,19 @@ func ParsePath(pathString string) (Path, error) {
 }
 
 func (p Path) WithProperty(part string) Path {
-	return append(p, stringPathComponent(part))
+	return append(p, mapPathComponent(part))
 }
 
 func (p Path) WithIndex(idx int) Path {
-	return append(p, indexPathComponent(idx))
+	return append(p, arrayPathComponent(idx))
+}
+
+func (p Path) Property() pathComponent {
+	if len(p) == 0 {
+		return nil
+	}
+
+	return p[len(p)-1]
 }
 
 func (p Path) Parent() Path {
@@ -95,6 +114,38 @@ func (p Path) Parent() Path {
 	}
 
 	return append(Path{}, p[:l-1]...)
+}
+
+func (p Path) IsSubPathOf(other Path) bool {
+	if len(p) > len(other) {
+		return false
+	}
+
+	for i, part := range p {
+		if part != other[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Expand the path by n levels, following the path of other.
+func (p Path) Expand(other Path, n int) Path {
+	// p must be a subpath of other
+	if !p.IsSubPathOf(other) {
+		return nil
+	}
+
+	return append(Path{}, other[:len(p)+n]...)
+}
+
+func (p Path) Equal(other Path) bool {
+	if len(p) != len(other) {
+		return false
+	}
+
+	return p.IsSubPathOf(other)
 }
 
 func (p Path) String() string {

@@ -133,6 +133,18 @@ type CommentBlock struct {
 	Segments []CommentBlockSegment
 }
 
+func (c *CommentBlock) String() string {
+	var sb strings.Builder
+	for _, segment := range c.Segments {
+		if segment.Type == ContentTypeTag {
+			continue
+		}
+		sb.WriteString(segment.String())
+		sb.WriteString("\n")
+	}
+	return strings.TrimSpace(sb.String())
+}
+
 type CommentBlockSegment struct {
 	Type     ContentType
 	Contents []string

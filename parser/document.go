@@ -30,8 +30,40 @@ type Section struct {
 type Property struct {
 	Path        Path
 	Description Comment
-	Type        string
+	Type        Type
 	Default     string
+}
+
+type Type string
+
+const (
+	TypeUnknown   Type = "unknown"
+	TypeString    Type = "string"
+	TypeNumber    Type = "number"
+	TypeBool      Type = "bool"
+	TypeTimestamp Type = "timestamp"
+	TypeArray     Type = "array"
+	TypeObject    Type = "object"
+)
+
+func (t Type) String() string {
+	return string(t)
+}
+
+func (t Type) SchemaString() string {
+	switch t {
+	case TypeString, TypeNumber, TypeArray, TypeObject:
+		return string(t)
+
+	case TypeBool:
+		return "boolean"
+
+	case TypeTimestamp:
+		return "string"
+
+	default:
+		return ""
+	}
 }
 
 type Node struct {
@@ -171,7 +203,7 @@ func parseCommentsOntoDocument(path Path, document *Document, comments []Comment
 				Path:        path,
 				Description: comment,
 				Type:        getTypeOf(parsedNode, comment),
-				Default:     "undefined",
+				Default:     "",
 			})
 		}
 
@@ -292,6 +324,8 @@ func getDefaultValue(n Node, c Comment) string {
 	return strings.TrimSpace(sb.String())
 }
 
+// Remove the last element from a slice and
+// return it
 func pop[T any](s *[]T) T {
 	var def T
 	l := len(*s)
@@ -305,43 +339,31 @@ func pop[T any](s *[]T) T {
 	return v
 }
 
-func shift[T any](s *[]T) T {
-	var def T
-	if len(*s) == 0 {
-		return def
-	}
-
-	v := (*s)[0]
-	*s = (*s)[1:]
-
-	return v
-}
-
-func getTypeOf(node Node, comment Comment) string {
+func getTypeOf(node Node, comment Comment) Type {
 	if typ := comment.Tags.GetString(TagType); typ != "" {
-		return typ
+		return Type(typ)
 	}
 
 	if node.RawNode == nil {
-		return "unknown"
+		return TypeUnknown
 	}
 
 	switch node.RawNode.ShortTag() {
 	case "!!bool":
-		return "bool"
+		return TypeBool
 	case "!!str":
-		return "string"
+		return TypeString
 	case "!!int":
-		return "number"
+		return TypeNumber
 	case "!!float":
-		return "number"
+		return TypeNumber
 	case "!!timestamp":
-		return "timestamp"
+		return TypeTimestamp
 	case "!!seq":
-		return "array"
+		return TypeArray
 	case "!!map":
-		return "object"
+		return TypeObject
 	default:
-		return "unknown"
+		return TypeUnknown
 	}
 }

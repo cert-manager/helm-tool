@@ -7,6 +7,7 @@ import (
 
 	"github.com/cert-manager/helm-docgen/parser"
 	"github.com/cert-manager/helm-docgen/render"
+	"github.com/cert-manager/helm-docgen/schema"
 	"github.com/spf13/cobra"
 )
 
@@ -53,6 +54,25 @@ var Inject = cobra.Command{
 	},
 }
 
+var Schema = cobra.Command{
+	Use: "schema",
+	Run: func(cmd *cobra.Command, args []string) {
+		document, err := parser.Load(valuesFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not open %q: %s\n", valuesFile, err)
+			os.Exit(1)
+		}
+
+		renderedSchema, err := schema.Render(document)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not render schema: %s\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Println(renderedSchema)
+	},
+}
+
 func init() {
 	Cmd.PersistentFlags().StringVarP(&valuesFile, "values", "i", "values.yaml", "values file used to generate the documentation")
 
@@ -64,6 +84,8 @@ func init() {
 
 	Cmd.AddCommand(&Render)
 	Render.PersistentFlags().StringVarP(&templateName, "template", "t", "markdown-table", "template to render documentation with")
+
+	Cmd.AddCommand(&Schema)
 }
 
 func main() {

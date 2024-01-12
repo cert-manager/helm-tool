@@ -21,25 +21,25 @@ func TestParsePath(t *testing.T) {
 		{
 			name:     "Single string component",
 			path:     "foo",
-			expected: Path{stringPathComponent("foo")},
+			expected: Path{mapPathComponent("foo")},
 			wantErr:  false,
 		},
 		{
 			name:     "Single index component",
 			path:     "foo[0]",
-			expected: Path{stringPathComponent("foo"), indexPathComponent(0)},
+			expected: Path{mapPathComponent("foo"), arrayPathComponent(0)},
 			wantErr:  false,
 		},
 		{
 			name:     "Multiple components",
 			path:     "foo.bar[0].baz",
-			expected: Path{stringPathComponent("foo"), stringPathComponent("bar"), indexPathComponent(0), stringPathComponent("baz")},
+			expected: Path{mapPathComponent("foo"), mapPathComponent("bar"), arrayPathComponent(0), mapPathComponent("baz")},
 			wantErr:  false,
 		},
 		{
 			name:     "Invalid path 2",
 			path:     "foo[0]aa",
-			expected: Path{stringPathComponent("foo"), indexPathComponent(0)},
+			expected: Path{mapPathComponent("foo"), arrayPathComponent(0)},
 			wantErr:  true,
 		},
 	}
