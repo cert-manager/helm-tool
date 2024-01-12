@@ -15,7 +15,7 @@
 
     {{- /* Render section header */}}
     {{- if .Name }}
-### {{ .Name }}
+## {{ .Name }}
     {{- end }}
 
     {{- /* Render the description comment */}}
@@ -23,38 +23,35 @@
         {{- template "comment" . }}
     {{- end }}
 
-    {{- if .Properties }}
-
-<table>
-<tr>
-<th>Property</th>
-<th>Description</th>
-<th>Type</th>
-<th>Default</th>
-</tr>
-
     {{- /* Iterate over properties within the section */}}
     {{- range .Properties }}
-<tr>
 
-<td>{{ .Path }}</td>
-<td>
+### {{ .Name }}
 
-{{- range .Description.Segments }}
-    {{- template "comment" . }}
-{{- end }}
-
-</td>
-<td>{{.Type}}</td>
-<td>
+<table>
+    <tr>
+        <th>Property</th>
+        <td>{{ .Name }}</td>
+    </tr>
+    <tr>
+        <th>Type</th>
+        <td>{{.Type}}</td>
+    </tr>
+    <tr>
+        <th>Default</th>
+        <td>
 
 ```yaml
 {{.Default}}
 ```
 
-</td>
-</tr>
-    {{- end }}
+        </td>
+    </tr>
 </table>
+
+{{- range .Description.Segments }}
+    {{- template "comment" . }}
+{{- end }}
+
 {{ end }}
 {{- end }}
