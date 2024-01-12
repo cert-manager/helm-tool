@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/cert-manager/helm-docgen/heuristics"
+	"github.com/cert-manager/helm-docgen/paths"
 	"gopkg.in/yaml.v3"
 )
 
@@ -28,7 +29,7 @@ type Section struct {
 }
 
 type Property struct {
-	Path        Path
+	Path        paths.Path
 	Description Comment
 	Type        Type
 	Default     string
@@ -67,7 +68,7 @@ func (t Type) SchemaString() string {
 }
 
 type Node struct {
-	Path         Path
+	Path         paths.Path
 	HeadComments []Comment
 	FootComment  []Comment
 	RawNode      *yaml.Node
@@ -123,7 +124,7 @@ func Load(filename string) (*Document, error) {
 	return &document, err
 }
 
-func parseCommentsOntoDocument(path Path, document *Document, comments []Comment) {
+func parseCommentsOntoDocument(path paths.Path, document *Document, comments []Comment) {
 	for _, comment := range comments {
 		switch {
 		case comment.Tags.GetBool(TagSection):
@@ -192,7 +193,7 @@ func parseCommentsOntoDocument(path Path, document *Document, comments []Comment
 				}
 			}
 
-			path, err := ParsePath(name)
+			path, err := paths.Parse(name)
 			if err != nil {
 				log.Printf("could not parse property path %q: %s\n", name, err)
 				continue

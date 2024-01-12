@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/cert-manager/helm-docgen/linter"
 	"github.com/cert-manager/helm-docgen/parser"
 	"github.com/cert-manager/helm-docgen/render"
 	"github.com/cert-manager/helm-docgen/schema"
@@ -12,11 +13,13 @@ import (
 )
 
 var (
-	valuesFile   string
-	targetFile   string
-	templateName string
-	headerSearch = regexValue{regexp.MustCompile(`(?m)^##\s+Parameters *$`)}
-	footerSearch = regexValue{regexp.MustCompile(`(?m)^##?\s+.*$`)}
+	valuesFile      string
+	templatesFolder string
+	exceptionsFile  string
+	targetFile      string
+	templateName    string
+	headerSearch    = regexValue{regexp.MustCompile(`(?m)^##\s+Parameters *$`)}
+	footerSearch    = regexValue{regexp.MustCompile(`(?m)^##?\s+.*$`)}
 )
 
 var Cmd = cobra.Command{
@@ -73,6 +76,25 @@ var Schema = cobra.Command{
 	},
 }
 
+var Lint = cobra.Command{
+	Use: "lint",
+	Run: func(cmd *cobra.Command, args []string) {
+		document, err := parser.Load(valuesFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not open %q: %s\n", valuesFile, err)
+			os.Exit(1)
+		}
+
+		err = linter.Lint(templatesFolder, exceptionsFile, document)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not lint: %s\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Println("No errors found")
+	},
+}
+
 func init() {
 	Cmd.PersistentFlags().StringVarP(&valuesFile, "values", "i", "values.yaml", "values file used to generate the documentation")
 
@@ -86,6 +108,10 @@ func init() {
 	Render.PersistentFlags().StringVarP(&templateName, "template", "t", "markdown-table", "template to render documentation with")
 
 	Cmd.AddCommand(&Schema)
+
+	Cmd.AddCommand(&Lint)
+	Lint.PersistentFlags().StringVarP(&templatesFolder, "templates", "d", "templates", "templates folder used to lint the values file")
+	Lint.PersistentFlags().StringVarP(&exceptionsFile, "exceptions", "e", "", "file containing exceptions to the linting rules")
 }
 
 func main() {
