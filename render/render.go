@@ -27,9 +27,12 @@ import (
 	"text/template"
 
 	"github.com/cert-manager/helm-tool/parser"
+
+	"github.com/Masterminds/sprig/v3"
 )
 
 //go:embed markdown-table
+//go:embed markdown-table-vertical
 var templates embed.FS
 
 func openTemplate(path string) (fs.File, error) {
@@ -58,7 +61,7 @@ func Render(templateName string, document *parser.Document) (string, error) {
 		return "", err
 	}
 
-	template, err := template.New(templateName).Parse(string(templateBytes))
+	template, err := template.New(templateName).Funcs(sprig.TxtFuncMap()).Parse(string(templateBytes))
 	if err != nil {
 		return "", err
 	}

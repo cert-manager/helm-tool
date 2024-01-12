@@ -52,7 +52,13 @@ var Render = cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Println(render.Render(templateName, document))
+		result, err := render.Render(templateName, document)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error rendering template: %s\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Println(result)
 	},
 }
 
