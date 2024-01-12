@@ -21,10 +21,10 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/cert-manager/helm-docgen/linter"
-	"github.com/cert-manager/helm-docgen/parser"
-	"github.com/cert-manager/helm-docgen/render"
-	"github.com/cert-manager/helm-docgen/schema"
+	"github.com/cert-manager/helm-tool/linter"
+	"github.com/cert-manager/helm-tool/parser"
+	"github.com/cert-manager/helm-tool/render"
+	"github.com/cert-manager/helm-tool/schema"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ var (
 )
 
 var Cmd = cobra.Command{
-	Use: "helm-docgen",
+	Use: "helm-tool",
 }
 
 var Render = cobra.Command{

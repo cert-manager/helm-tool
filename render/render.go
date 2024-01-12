@@ -26,7 +26,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/cert-manager/helm-docgen/parser"
+	"github.com/cert-manager/helm-tool/parser"
 )
 
 //go:embed markdown-table

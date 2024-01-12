@@ -16,7 +16,7 @@ limitations under the License.
 
 package parser
 
-import "github.com/cert-manager/helm-docgen/heuristics"
+import "github.com/cert-manager/helm-tool/heuristics"
 
 type Comment struct {
 	heuristics.CommentBlock

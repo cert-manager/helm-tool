@@ -21,8 +21,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cert-manager/helm-docgen/heuristics"
-	"github.com/cert-manager/helm-docgen/paths"
+	"github.com/cert-manager/helm-tool/heuristics"
+	"github.com/cert-manager/helm-tool/paths"
 	"gopkg.in/yaml.v3"
 )
 
