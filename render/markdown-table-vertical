@@ -26,27 +26,27 @@
     {{- /* Iterate over properties within the section */}}
     {{- range .Properties }}
 
-### {{ .Name }}
+### {{ .Path }}
 
 <table>
-    <tr>
-        <th>Property</th>
-        <td>{{ .Name }}</td>
-    </tr>
-    <tr>
-        <th>Type</th>
-        <td>{{.Type}}</td>
-    </tr>
-    <tr>
-        <th>Default</th>
-        <td>
+<tr>
+<th>Property</th>
+<td>{{ .Name }}</td>
+</tr>
+<tr>
+<th>Type</th>
+<td>{{.Type}}</td>
+</tr>
+<tr>
+<th>Default</th>
+<td>
 
 ```yaml
 {{.Default}}
 ```
 
-        </td>
-    </tr>
+</td>
+</tr>
 </table>
 
 {{- range .Description.Segments }}
