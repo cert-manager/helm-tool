@@ -97,6 +97,17 @@ func RecutNewLines(lines []string) []string {
 			continue
 		}
 
+		// If the line starts with ref: it's a reference and should be on its
+		// own line
+		if strings.HasPrefix(trimmedLine, "ref:") {
+			if len(currentLine) != 0 {
+				parsedLines = append(parsedLines, strings.Join(currentLine, " "))
+			}
+			parsedLines = append(parsedLines, lineWithoutLeadingSpaces)
+			currentLine = nil
+			continue
+		}
+
 		// If the previous line ends with certain characters
 		// (a colon, :, for example) we assume the new line was intentional and
 		// not just text wrapping

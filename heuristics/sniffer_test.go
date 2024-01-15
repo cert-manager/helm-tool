@@ -172,6 +172,28 @@ func TestContentSniffer_SniffContentType(t *testing.T) {
 			},
 		},
 		{
+			"ContentTypeText/Ref",
+			fields{},
+			args{
+				`ref: https://example.com`,
+			},
+			want{
+				ContentTypeText,
+				true,
+			},
+		},
+		{
+			"ContentTypeYaml/Ref",
+			fields{},
+			args{
+				`ref: "not a url"`,
+			},
+			want{
+				ContentTypeYaml,
+				true,
+			},
+		},
+		{
 			"ContentTypeTag/Basic",
 			fields{},
 			args{
