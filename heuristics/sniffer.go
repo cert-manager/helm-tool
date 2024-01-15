@@ -101,10 +101,12 @@ func isLineTag(line string) bool {
 
 // isLineYamlRestrictive determine if the line is yaml(ish). It parses the line as
 // yaml and returns true only if the following criteria is met:
-// - It is a yaml map
-// - The map key has no spaces
-// - The map key starts with a lowercase letter
-// - If the map value contains spaces, the value must be quoted
+//   - It is a yaml map
+//   - The map key has no spaces
+//   - The map key starts with a lowercase letter
+//   - If the map value contains spaces, the value must be quoted
+//   - If the key is "ref", and the value is a URL then skip it (it's likely a
+//     comment referencing something)
 func isLineYamlRestrictive(line string) bool {
 	var node yaml.Node
 	if yaml.Unmarshal([]byte(line), &node) != nil {
@@ -137,6 +139,10 @@ func isNodeYamlRestrictive(node *yaml.Node) bool {
 		}
 
 		if strings.Contains(valueNode.Value, " ") && valueNode.Style != yaml.DoubleQuotedStyle && valueNode.Style != yaml.SingleQuotedStyle {
+			return false
+		}
+
+		if keyNode.Value == "ref" && strings.HasPrefix(valueNode.Value, "http") {
 			return false
 		}
 
