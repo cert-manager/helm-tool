@@ -31,7 +31,7 @@
 <table>
 <tr>
 <th>Property</th>
-<td>{{ .Name }}</td>
+<td>{{ .Path }}</td>
 </tr>
 <tr>
 <th>Type</th>
