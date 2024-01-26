@@ -73,3 +73,33 @@ func TestParsePath(t *testing.T) {
 		})
 	}
 }
+
+func TestWithProperty(t *testing.T) {
+	rootPath := Path{}.WithProperty("foo").WithProperty("bar").WithProperty("aaaa")
+
+	path1 := rootPath.WithProperty("baz1")
+	path2 := rootPath.WithProperty("baz2")
+
+	if path1.String() != "foo.bar.aaaa.baz1" {
+		t.Errorf("path1.String() = %v, expected %v", path1.String(), "foo.bar.aaaa.baz1")
+	}
+
+	if path2.String() != "foo.bar.aaaa.baz2" {
+		t.Errorf("path2.String() = %v, expected %v", path2.String(), "foo.bar.aaaa.baz2")
+	}
+}
+
+func TestWithIndex(t *testing.T) {
+	rootPath := Path{}.WithProperty("foo").WithProperty("bar").WithProperty("aaaa")
+
+	path1 := rootPath.WithIndex(0)
+	path2 := rootPath.WithIndex(1)
+
+	if path1.String() != "foo.bar.aaaa[0]" {
+		t.Errorf("path1.String() = %v, expected %v", path1.String(), "foo.bar.aaaa[0]")
+	}
+
+	if path2.String() != "foo.bar.aaaa[1]" {
+		t.Errorf("path2.String() = %v, expected %v", path2.String(), "foo.bar.aaaa[1]")
+	}
+}
