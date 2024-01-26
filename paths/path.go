@@ -108,11 +108,15 @@ func Parse(pathString string) (Path, error) {
 }
 
 func (p Path) WithProperty(part string) Path {
-	return append(p, mapPathComponent(part))
+	nePath := append(Path{}, p...)
+	nePath = append(nePath, mapPathComponent(part))
+	return nePath
 }
 
 func (p Path) WithIndex(idx int) Path {
-	return append(p, arrayPathComponent(idx))
+	nePath := append(Path{}, p...)
+	nePath = append(nePath, arrayPathComponent(idx))
+	return nePath
 }
 
 func (p Path) Property() pathComponent {
