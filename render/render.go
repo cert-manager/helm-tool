@@ -31,6 +31,7 @@ import (
 	"github.com/Masterminds/sprig/v3"
 )
 
+//go:embed markdown-plain
 //go:embed markdown-table
 //go:embed markdown-table-vertical
 var templates embed.FS
@@ -61,7 +62,12 @@ func Render(templateName string, document *parser.Document) (string, error) {
 		return "", err
 	}
 
-	template, err := template.New(templateName).Funcs(sprig.TxtFuncMap()).Parse(string(templateBytes))
+	funcMap := sprig.TxtFuncMap()
+	funcMap["indentWith"] = func(pad string, v string) string {
+		return pad + strings.Replace(v, "\n", "\n"+pad, -1)
+	}
+
+	template, err := template.New(templateName).Funcs(funcMap).Parse(string(templateBytes))
 	if err != nil {
 		return "", err
 	}

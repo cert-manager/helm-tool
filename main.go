@@ -121,13 +121,13 @@ func init() {
 	Cmd.PersistentFlags().StringVarP(&valuesFile, "values", "i", "values.yaml", "values file used to generate the documentation")
 
 	Cmd.AddCommand(&Inject)
-	Inject.PersistentFlags().StringVarP(&templateName, "template", "t", "markdown-table", "template to render documentation with")
+	Inject.PersistentFlags().StringVarP(&templateName, "template", "t", "markdown-plain", "template to render documentation with")
 	Inject.PersistentFlags().StringVarP(&targetFile, "output", "o", "README.md", "file to inject the generated markdown into")
 	Inject.PersistentFlags().Var(&headerSearch, "header-search", "set the regex used to match the start of the injected markdown")
 	Inject.PersistentFlags().Var(&footerSearch, "footer-search", "set the regex used to match the end of the injected markdown")
 
 	Cmd.AddCommand(&Render)
-	Render.PersistentFlags().StringVarP(&templateName, "template", "t", "markdown-table", "template to render documentation with")
+	Render.PersistentFlags().StringVarP(&templateName, "template", "t", "markdown-plain", "template to render documentation with")
 
 	Cmd.AddCommand(&Schema)
 
