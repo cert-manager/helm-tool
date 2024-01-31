@@ -31,6 +31,7 @@ import (
 	"github.com/Masterminds/sprig/v3"
 )
 
+//go:embed markdown-plain
 //go:embed markdown-table
 //go:embed markdown-table-vertical
 var templates embed.FS

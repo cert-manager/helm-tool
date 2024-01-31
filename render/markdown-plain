@@ -1,0 +1,40 @@
+{{- /* Comment rendering depends on the comment type, define a helper function */}}
+{{ define "comment" }}
+{{ if eq .Type "yaml" }}
+```yaml
+{{ . }}
+```
+{{- else if eq .Type "text" }}
+{{- /* Newlines are only preserved in markdown if the line ends with two or more spaces */}}
+{{ .String  | replace "\n" "  \n"}}
+{{- end }}
+{{- end }}
+
+{{- /* Iterate over defined sections */}}
+{{- range .Sections }}
+
+{{- /* Render section header */}}
+{{- if .Name }}
+### {{ .Name }}
+{{- end }}
+
+{{- /* Render the description comment */}}
+{{- range .Description.Segments }}
+    {{- template "comment" . }}
+{{- end }}
+
+{{- /* Iterate over properties within the section */}}
+{{- range .Properties }}
+#### **{{ .Path }}** `{{ .Type }}`
+{{- if .Default }}
+> Default value:
+> ```yaml
+> {{.Default}}
+> ```
+{{- end }}
+{{- range .Description.Segments }}
+{{- template "comment" . }}
+{{- end }}
+{{- end }}
+
+{{- end }}
