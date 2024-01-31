@@ -349,8 +349,8 @@ ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containe
 > Default value:
 > ```yaml
 > runAsNonRoot: true
-seccompProfile:
-  type: RuntimeDefault
+> seccompProfile:
+>   type: RuntimeDefault
 > ```
 
 Pod Security Context  
@@ -360,10 +360,10 @@ ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 > Default value:
 > ```yaml
 > allowPrivilegeEscalation: false
-capabilities:
-  drop:
-    - ALL
-readOnlyRootFilesystem: true
+> capabilities:
+>   drop:
+>     - ALL
+> readOnlyRootFilesystem: true
 > ```
 
 Container Security Context to be set on the controller component container  
@@ -512,11 +512,11 @@ topologySpreadConstraints:
 > Default value:
 > ```yaml
 > enabled: true
-failureThreshold: 8
-initialDelaySeconds: 10
-periodSeconds: 10
-successThreshold: 1
-timeoutSeconds: 15
+> failureThreshold: 8
+> initialDelaySeconds: 10
+> periodSeconds: 10
+> successThreshold: 1
+> timeoutSeconds: 15
 > ```
 
 LivenessProbe settings for the controller container of the controller Pod.  
@@ -769,8 +769,8 @@ strategy:
 > Default value:
 > ```yaml
 > runAsNonRoot: true
-seccompProfile:
-  type: RuntimeDefault
+> seccompProfile:
+>   type: RuntimeDefault
 > ```
 
 Pod Security Context to be set on the webhook component Pod  
@@ -780,10 +780,10 @@ ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 > Default value:
 > ```yaml
 > allowPrivilegeEscalation: false
-capabilities:
-  drop:
-    - ALL
-readOnlyRootFilesystem: true
+> capabilities:
+>   drop:
+>     - ALL
+> readOnlyRootFilesystem: true
 > ```
 
 Container Security Context to be set on the webhook component container  
@@ -864,10 +864,10 @@ ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containe
 > Default value:
 > ```yaml
 > failureThreshold: 3
-initialDelaySeconds: 60
-periodSeconds: 10
-successThreshold: 1
-timeoutSeconds: 1
+> initialDelaySeconds: 60
+> periodSeconds: 10
+> successThreshold: 1
+> timeoutSeconds: 1
 > ```
 
 Liveness probe values  
@@ -877,10 +877,10 @@ ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container
 > Default value:
 > ```yaml
 > failureThreshold: 3
-initialDelaySeconds: 5
-periodSeconds: 5
-successThreshold: 1
-timeoutSeconds: 1
+> initialDelaySeconds: 5
+> periodSeconds: 5
+> successThreshold: 1
+> timeoutSeconds: 1
 > ```
 
 Readiness probe values  
@@ -1073,8 +1073,8 @@ Create network policies for the webhooks
 > Default value:
 > ```yaml
 > - from:
-    - ipBlock:
-        cidr: 0.0.0.0/0
+>     - ipBlock:
+>         cidr: 0.0.0.0/0
 > ```
 
 Ingress rule for the webhook network policy, by default will allow all inbound traffic
@@ -1083,19 +1083,19 @@ Ingress rule for the webhook network policy, by default will allow all inbound t
 > Default value:
 > ```yaml
 > - ports:
-    - port: 80
-      protocol: TCP
-    - port: 443
-      protocol: TCP
-    - port: 53
-      protocol: TCP
-    - port: 53
-      protocol: UDP
-    - port: 6443
-      protocol: TCP
-  to:
-    - ipBlock:
-        cidr: 0.0.0.0/0
+>     - port: 80
+>       protocol: TCP
+>     - port: 443
+>       protocol: TCP
+>     - port: 53
+>       protocol: TCP
+>     - port: 53
+>       protocol: UDP
+>     - port: 6443
+>       protocol: TCP
+>   to:
+>     - ipBlock:
+>         cidr: 0.0.0.0/0
 > ```
 
 Egress rule for the webhook network policy, by default will allow all outbound traffic traffic to ports 80 and 443, as well as DNS ports
@@ -1185,8 +1185,8 @@ strategy:
 > Default value:
 > ```yaml
 > runAsNonRoot: true
-seccompProfile:
-  type: RuntimeDefault
+> seccompProfile:
+>   type: RuntimeDefault
 > ```
 
 Pod Security Context to be set on the cainjector component Pod  
@@ -1196,10 +1196,10 @@ ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 > Default value:
 > ```yaml
 > allowPrivilegeEscalation: false
-capabilities:
-  drop:
-    - ALL
-readOnlyRootFilesystem: true
+> capabilities:
+>   drop:
+>     - ALL
+> readOnlyRootFilesystem: true
 > ```
 
 Container Security Context to be set on the cainjector component container  
@@ -1462,8 +1462,8 @@ Enables the startup api check
 > Default value:
 > ```yaml
 > runAsNonRoot: true
-seccompProfile:
-  type: RuntimeDefault
+> seccompProfile:
+>   type: RuntimeDefault
 > ```
 
 Pod Security Context to be set on the startupapicheck component Pod  
@@ -1473,10 +1473,10 @@ ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 > Default value:
 > ```yaml
 > allowPrivilegeEscalation: false
-capabilities:
-  drop:
-    - ALL
-readOnlyRootFilesystem: true
+> capabilities:
+>   drop:
+>     - ALL
+> readOnlyRootFilesystem: true
 > ```
 
 Container Security Context to be set on the controller component container  
@@ -1500,8 +1500,8 @@ Job backoffLimit
 > Default value:
 > ```yaml
 > helm.sh/hook: post-install
-helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-helm.sh/hook-weight: "1"
+> helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+> helm.sh/hook-weight: "1"
 > ```
 
 Optional additional annotations to add to the startupapicheck Job
@@ -1623,8 +1623,8 @@ Kubernetes imagePullPolicy on Deployment.
 > Default value:
 > ```yaml
 > helm.sh/hook: post-install
-helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-helm.sh/hook-weight: "-5"
+> helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+> helm.sh/hook-weight: "-5"
 > ```
 
 annotations for the startup API Check job RBAC and PSP resources
@@ -1649,8 +1649,8 @@ If not set and create is true, a name is generated using the fullname template
 > Default value:
 > ```yaml
 > helm.sh/hook: post-install
-helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-helm.sh/hook-weight: "-5"
+> helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+> helm.sh/hook-weight: "-5"
 > ```
 
 Optional additional annotations to add to the Job's ServiceAccount

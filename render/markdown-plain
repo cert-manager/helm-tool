@@ -29,7 +29,7 @@
 {{- if .Default }}
 > Default value:
 > ```yaml
-> {{.Default}}
+{{ .Default | indentWith "> " }}
 > ```
 {{- end }}
 {{- range .Description.Segments }}
