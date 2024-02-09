@@ -176,6 +176,18 @@ func (p Path) String() string {
 	return sb.String()
 }
 
+func (p Path) PatternString() string {
+	sb := strings.Builder{}
+	for i, part := range p {
+		if _, ok := part.(arrayPathComponent); ok {
+			sb.WriteString("[*]")
+			continue
+		}
+		part.Append(i, &sb)
+	}
+	return sb.String()
+}
+
 func runeSet(r []rune) map[rune]bool {
 	s := make(map[rune]bool, len(r))
 	for _, rr := range r {

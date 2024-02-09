@@ -39,7 +39,7 @@ func Lint(
 	valuePathsDict := map[string]struct{}{}
 	for _, section := range document.Sections {
 		for _, property := range section.Properties {
-			valuePathsDict[property.Path.String()] = struct{}{}
+			valuePathsDict[property.Path.PatternString()] = struct{}{}
 		}
 	}
 	valuePathsDict = parsetemplates.MakeUniform(valuePathsDict)
