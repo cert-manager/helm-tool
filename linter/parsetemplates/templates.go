@@ -17,7 +17,6 @@ limitations under the License.
 package parsetemplates
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -33,7 +32,7 @@ func ListTemplatePaths(templatesPath string) ([]string, error) {
 
 	tmpl.Funcs(funcs_serdes.FuncMap())
 
-	templates := map[*template.Template]struct{}{}
+	templates := Set[*template.Template]{}
 
 	// parse all templates
 	err := filepath.Walk(
@@ -68,79 +67,80 @@ func ListTemplatePaths(templatesPath string) ([]string, error) {
 		return nil, err
 	}
 
-	// remove prefixes
-	templatePaths := make([]string, 0, len(templatePathStrings))
-	for _, pathString := range templatePathStrings {
-		if !strings.HasPrefix(pathString, ".$") {
-			continue
-		}
-
-		templatePaths = append(templatePaths, strings.TrimPrefix(pathString, ".$"))
-	}
-
-	return templatePaths, nil
+	return templatePathStrings, nil
 }
+
+type templateUsage struct {
+	node    string
+	context string
+}
+
+const (
+	RootNode = "<root-node>"
+	RootPath = "<root-path>"
+)
 
 func ListTemplatePathsFromTemplates(
 	tmpl *template.Template,
-	templates map[*template.Template]struct{},
+	templates Set[*template.Template],
 ) ([]string, error) {
-	// walk all templates
-	templateResults := map[string]map[string]struct{}{}
-	templateUsage := map[string][][]string{}
+	// templateResults lists all property paths that are used in a template
+	templateResults := map[string]Set[string]{}
+	// templateUsage lists all templates that are used in a template
+	templateUsages := map[string]Set[templateUsage]{}
 	for _, t := range tmpl.Templates() {
-		root := "$"
-		tmplPath := "$"
-		if _, ok := templates[t]; !ok {
-			// we found a directly parsed template
-			root = ""
-			tmplPath = t.Name()
+		var selfNode, selfPath string
+		if _, ok := templates[t]; ok {
+			// we found a template that is the output of a
+			// parsed file in the templates folder
+			selfNode = RootNode
+			selfPath = RootPath
+		} else {
+			// we found a template that is NOT the output
+			// of a parsed file in the templates folder
+			selfNode = t.Name()
+			selfPath = ""
 		}
 
-		result, ok := templateResults[tmplPath]
-		if !ok {
-			result = map[string]struct{}{}
-			templateResults[tmplPath] = result
-		}
+		results := getSet(templateResults, selfNode)
+		usages := getSet(templateUsages, selfNode)
 
-		walk(t.Root, root, func(path string, node parse.Node, templateName string) {
-			if node != nil {
-				result[path] = struct{}{}
-			} else {
-				templateUsage[tmplPath] = append(templateUsage[tmplPath], []string{templateName, path})
-			}
-		}, func(varname string, assignName, assign, access *string) {
-			if assign != nil {
-				varPath := fmt.Sprintf("%s%s", tmplPath, varname)
-				assignPath := fmt.Sprintf("%s%s", tmplPath, *assignName)
-				templateUsage[assignPath] = append(templateUsage[assignPath], []string{varPath, *assign})
-			} else {
-				varPath := fmt.Sprintf("%s%s", tmplPath, varname)
-				result, ok := templateResults[varPath]
-				if !ok {
-					result = map[string]struct{}{}
-					templateResults[varPath] = result
-				}
-
-				result[*access] = struct{}{}
-			}
-		})
+		walk(t.Root, selfNode, selfPath,
+			// Found path to a value
+			func(path string) {
+				results.Insert(path)
+			},
+			// Found template call
+			func(templateName string, context string) {
+				usages.Insert(templateUsage{templateName, context})
+			},
+			// Found local variable usage
+			func(varname string, path string) {
+				getSet(templateResults, joinPath(selfNode, varname)).Insert(path)
+			},
+			// Found local variable definition
+			func(varname string, node, path string) {
+				getSet(templateUsages, node).Insert(templateUsage{joinPath(selfNode, varname), path})
+			},
+		)
 	}
 
-	followPath("$", templateUsage, func(path, tmplPath string) {
-		for key := range templateResults[tmplPath] {
-			templateResults["$"][fmt.Sprintf("%s%s", path, key)] = struct{}{}
+	followPath(RootNode, Set[string]{}, templateUsages, func(node, path string) {
+		for key := range templateResults[node] {
+			if strings.HasPrefix(key, RootPath) {
+				templateResults[RootNode].Insert(key)
+			} else {
+				templateResults[RootNode].Insert(joinPath(path, key))
+			}
 		}
 	})
 
 	paths := map[string]struct{}{}
-	for key := range templateResults["$"] {
-		if !strings.HasPrefix(key, "$.Values") {
+	for key := range templateResults[RootNode] {
+		if !strings.HasPrefix(key, joinPath(RootPath, "Values")) {
 			continue
 		}
-		key = strings.TrimPrefix(key, "$.Values")
-		key = "$" + key
-
+		key = strings.TrimPrefix(key, joinPath(RootPath, "Values"))
 		paths[key] = struct{}{}
 	}
 
@@ -156,124 +156,166 @@ func ListTemplatePathsFromTemplates(
 }
 
 func followPath(
-	key string,
-	templateUsage map[string][][]string,
-	run func(path string, tpath string),
+	node string,
+	visited Set[string],
+	templateUsage map[string]Set[templateUsage],
+	run func(node string, path string),
 ) {
-	for _, usage := range templateUsage[key] {
-		followPath(usage[0], templateUsage, func(path, tpath string) {
-			run(fmt.Sprintf("%s%s", usage[1], path), tpath)
+	if visited.Has(node) {
+		return
+	}
+	visited.Insert(node)
+
+	for usage := range templateUsage[node] {
+		// Recursively follow the path until we reach the <root-node>
+		followPath(usage.node, visited, templateUsage, func(node, path string) {
+			run(node, joinPath(usage.context, path))
 		})
 	}
-	run("", key)
+	run(node, "")
+
+	visited.Delete(node)
 }
 
 func walk(
 	node parse.Node,
+	parentNode string,
 	parentPath string,
-	foundPathFn func(path string, node parse.Node, templateName string),
-	foundLocalVar func(varname string, assignPath, assign, access *string),
+	// foundPathFn is called when a used path is found
+	foundPathFn func(path string),
+	// foundTemplateFn is called when a template-like call is found
+	foundTemplateFn func(templateName string, context string),
+	// foundVarUsageFn is called when a variable is used
+	foundVarUsageFn func(varname string, path string),
+	// foundVarDefFn is called when a variable is defined
+	foundVarDefFn func(varname string, node, path string),
 ) {
 	if node == nil || reflect.ValueOf(node).IsNil() {
 		return
 	}
 
-	path := parentPath
 	switch tn := node.(type) {
+	case *parse.DotNode:
+		foundPathFn(parentPath)
 	case *parse.FieldNode:
 		if len(tn.Ident) == 0 {
 		} else if tn.Ident[0] == "$" {
-			path = strings.Join(tn.Ident, ".")
+			foundPathFn(joinPath(RootPath, tn.Ident[1:]...))
 		} else {
-			path = fmt.Sprintf("%s.%s", parentPath, strings.Join(tn.Ident, "."))
+			foundPathFn(joinPath(parentPath, tn.Ident...))
 		}
+		return
 	case *parse.VariableNode:
 		if len(tn.Ident) == 0 {
 		} else if tn.Ident[0] == "$" {
-			path = strings.Join(tn.Ident, ".")
+			foundPathFn(joinPath(RootPath, tn.Ident[1:]...))
 		} else if len(tn.Ident[0]) >= 1 && tn.Ident[0][0] == '$' {
-			path := "." + strings.Join(tn.Ident[1:], ".")
-			foundLocalVar(tn.Ident[0], nil, nil, &path)
-			return
+			foundVarUsageFn(tn.Ident[0], joinPath("", tn.Ident[1:]...))
 		} else {
-			path = fmt.Sprintf("%s.%s", parentPath, strings.Join(tn.Ident, "."))
+			foundPathFn(joinPath(parentPath, tn.Ident...))
 		}
+		return
 	}
-
-	foundPathFn(path, node, "")
 
 	switch tn := node.(type) {
 	case *parse.ActionNode:
-		walk(tn.Pipe, path, foundPathFn, foundLocalVar)
+		walk(tn.Pipe, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
 	case *parse.ChainNode:
-		walk(tn.Node, path, foundPathFn, foundLocalVar)
+		walk(tn.Node, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
 	case *parse.CommandNode:
 		// handle 'include "test.labels" .' separately
 		if len(tn.Args) >= 3 && tn.Args[0].String() == "include" && tn.Args[1].Type() == parse.NodeString {
-			foundPathFn(getPath(tn.Args[2], path), nil, tn.Args[1].(*parse.StringNode).Text)
+			foundTemplateFn(
+				tn.Args[1].(*parse.StringNode).Text,
+				getPath(tn.Args[2], parentNode, parentPath),
+			)
 		}
 		for _, snode := range tn.Args {
-			walk(snode, path, foundPathFn, foundLocalVar)
+			walk(snode, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
 		}
 	case *parse.BranchNode:
-		walk(tn.Pipe, path, foundPathFn, foundLocalVar)
-		walk(tn.List, path, foundPathFn, foundLocalVar)
-		walk(tn.ElseList, path, foundPathFn, foundLocalVar)
+		walk(tn.Pipe, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+		walk(tn.List, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+		walk(tn.ElseList, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
 	case *parse.ListNode:
 		for _, snode := range tn.Nodes {
-			walk(snode, path, foundPathFn, foundLocalVar)
+			walk(snode, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
 		}
 	case *parse.PipeNode:
 		for _, cmd := range tn.Cmds {
-			walk(cmd, path, foundPathFn, foundLocalVar)
+			walk(cmd, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
 		}
 
 		for _, decl := range tn.Decl {
 			for _, cmd := range tn.Cmds {
-				walk(cmd, path, func(path string, _ parse.Node, _ string) {
-					empty := ""
-					foundLocalVar(decl.String(), &empty, &path, nil)
-				}, func(varname string, _, _, access *string) {
-					if access == nil {
-						return
-					}
-					foundLocalVar(decl.String(), &varname, access, nil)
-				})
+				walk(cmd, parentNode, parentPath,
+					func(path string) {
+						foundVarDefFn(decl.String(), parentNode, path)
+					},
+					func(templateName, context string) {
+						foundVarDefFn(decl.String(), templateName, context)
+					},
+					func(varname string, path string) {
+						foundVarDefFn(decl.String(), joinPath(parentNode, varname), path)
+					},
+					func(varname string, node, path string) {
+						// TODO: maybe do something here?
+					},
+				)
 
 			}
 		}
 	case *parse.TemplateNode:
-		path := getPath(tn.Pipe, path)
-		foundPathFn(path, nil, tn.Name)
+		walk(tn.Pipe, parentNode, parentPath,
+			func(path string) {
+				foundTemplateFn(tn.Name, path)
+			},
+			func(templateName, context string) {},
+			func(varname string, path string) {},
+			func(varname string, node, path string) {},
+		)
 	case *parse.IfNode:
-		walk(&tn.BranchNode, path, foundPathFn, foundLocalVar)
+		walk(&tn.BranchNode, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
 	case *parse.RangeNode:
-		walk(tn.Pipe, path,
-			func(path string, node parse.Node, templateName string) {},
-			func(varname string, assignPath, assign, access *string) {
-				if assign == nil {
-					return
-				}
-				newAssign := *assign + ".[*]"
-				foundLocalVar(varname, assignPath, &newAssign, access)
+		walk(tn.Pipe, parentNode, parentPath,
+			func(path string) {
+				foundPathFn(path + "[*]")
+			},
+			func(templateName, context string) {
+				foundTemplateFn(templateName, context+"[*]")
+			},
+			func(varname string, path string) {
+				foundVarUsageFn(varname, path+"[*]")
+			},
+			func(varname string, node, path string) {
+				foundVarDefFn(varname, node, path+"[*]")
 			},
 		)
-		path := getPath(tn.Pipe, path) + ".[*]"
-		walk(tn.List, path, foundPathFn, foundLocalVar)
-		walk(tn.ElseList, path, foundPathFn, foundLocalVar)
+		path := getPath(tn.Pipe, parentNode, parentPath) + "[*]"
+		walk(tn.List, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+		walk(tn.ElseList, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
 	case *parse.WithNode:
-		path := getPath(tn.Pipe, path)
-		walk(tn.List, path, foundPathFn, foundLocalVar)
-		walk(tn.ElseList, path, foundPathFn, foundLocalVar)
+		path := getPath(tn.Pipe, parentNode, parentPath)
+		walk(tn.List, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+		walk(tn.ElseList, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
 	}
 }
 
-func getPath(node parse.Node, parentPath string) string {
-	longestPath := ""
-	walk(node, parentPath, func(path string, _ parse.Node, _ string) {
-		if len(path) > len(longestPath) {
-			longestPath = path
-		}
-	}, func(varname string, assignPath, assign, access *string) {})
+func getPath(node parse.Node, parentNode string, parentPath string) string {
+	longestPath := parentPath
+	walk(node, parentNode, parentPath,
+		func(path string) {
+			if len(path) > len(longestPath) {
+				longestPath = path
+			}
+		},
+		func(_, context string) {
+			if len(context) > len(longestPath) {
+				longestPath = context
+			}
+		},
+		func(varname string, path string) {},
+		func(varname string, node, path string) {},
+	)
 	return longestPath
 }
