@@ -19,78 +19,85 @@ package linter
 import (
 	"testing"
 
+	"github.com/cert-manager/helm-tool/linter/sets"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDiffPaths(t *testing.T) {
 	type testcase struct {
-		a            []string
-		b            []string
-		wantMissingA []string
-		wantMissingB []string
+		a            sets.Set[string]
+		b            sets.Set[string]
+		wantMissingA sets.Set[string]
+		wantMissingB sets.Set[string]
 	}
 
 	testcases := []testcase{
 		{
-			a:            []string{".$", ".$.a", ".$.b", ".$.c"},
-			b:            []string{".$", ".$.a", ".$.b", ".$.c"},
-			wantMissingA: []string{},
-			wantMissingB: []string{},
+			a:            sets.New("a", "b", "c"),
+			b:            sets.New("a", "b", "c"),
+			wantMissingA: sets.New[string](),
+			wantMissingB: sets.New[string](),
 		},
 		{
-			a:            []string{".$", ".$.a", ".$.b", ".$.c"},
-			b:            []string{".$", ".$.a", ".$.b"},
-			wantMissingA: []string{},
-			wantMissingB: []string{".$.c"},
+			a:            sets.New("a", "b", "c"),
+			b:            sets.New("a", "b"),
+			wantMissingA: sets.New[string](),
+			wantMissingB: sets.New("c"),
 		},
 		{
-			a:            []string{".$", ".$.a", ".$.b"},
-			b:            []string{".$", ".$.a", ".$.b", ".$.c"},
-			wantMissingA: []string{".$.c"},
-			wantMissingB: []string{},
+			a:            sets.New("a", "b"),
+			b:            sets.New("a", "b", "c"),
+			wantMissingA: sets.New("c"),
+			wantMissingB: sets.New[string](),
 		},
 		{
-			a:            []string{".$", ".$.a", ".$.a.b"},
-			b:            []string{".$", ".$.a"},
-			wantMissingA: []string{},
-			wantMissingB: []string{},
+			a:            sets.New("a.b"),
+			b:            sets.New("a"),
+			wantMissingA: sets.New[string](),
+			wantMissingB: sets.New[string](),
 		},
 		{
-			a:            []string{".$", ".$.a", ".$.a.b"},
-			b:            []string{".$", ".$.a", ".$.a.c"},
-			wantMissingA: []string{".$.a.c"},
-			wantMissingB: []string{".$.a.b"},
+			a:            sets.New("a.b"),
+			b:            sets.New("a.c"),
+			wantMissingA: sets.New("a.c"),
+			wantMissingB: sets.New("a.b"),
 		},
 		{
-			a:            []string{".$", ".$.a", ".$.a.b.d"},
-			b:            []string{".$", ".$.a", ".$.a.c"},
-			wantMissingA: []string{".$.a.c"},
-			wantMissingB: []string{".$.a.b.d"},
+			a:            sets.New("a.b.d"),
+			b:            sets.New("a.c"),
+			wantMissingA: sets.New("a.c"),
+			wantMissingB: sets.New("a.b.d"),
 		},
 		{
-			a:            []string{".$", ".$.a", ".$.a.b.d"},
-			b:            []string{".$", ".$.b", ".$.c"},
-			wantMissingA: []string{".$.b", ".$.c"},
-			wantMissingB: []string{".$.a", ".$.a.b.d"},
+			a:            sets.New("a.b.d"),
+			b:            sets.New("b", "c"),
+			wantMissingA: sets.New("b", "c"),
+			wantMissingB: sets.New("a.b.d"),
 		},
 		{
-			a:            []string{".$", ".$.b", ".$.d.e.f"},
-			b:            []string{".$", ".$.a", ".$.b", ".$.b.c", ".$.d.g"},
-			wantMissingA: []string{".$.a", ".$.d.g"},
-			wantMissingB: []string{".$.d.e.f"},
+			a:            sets.New("b", "d.e.f"),
+			b:            sets.New("a", "b.c", "d.g"),
+			wantMissingA: sets.New("a", "d.g"),
+			wantMissingB: sets.New("d.e.f"),
 		},
 		{
-			a:            []string{".$", ".$.a", ".$.a.b", ".$.a.b.c3"},
-			b:            []string{".$", ".$.a", ".$.a.b", ".$.a.b.c1", ".$.a.b.c2", ".$.a.b.c3", ".$.a.b.c4"},
-			wantMissingA: []string{".$.a.b.c1", ".$.a.b.c2", ".$.a.b.c4"},
-			wantMissingB: []string{},
+			a:            sets.New("a.b.c3"),
+			b:            sets.New("a.b.c1", "a.b.c2", "a.b.c3", "a.b.c4"),
+			wantMissingA: sets.New("a.b.c1", "a.b.c2", "a.b.c4"),
+			wantMissingB: sets.New[string](),
+		},
+		{
+			a:            sets.New("app.logLevel", "app.test", "app"),
+			b:            sets.New("app.logLevel", "app.logLevela", "app.name"),
+			wantMissingA: sets.New("app.logLevela", "app.name"),
+			wantMissingB: sets.New("app.test"),
 		},
 	}
 
 	for _, tc := range testcases {
 		diffA, diffB := DiffPaths(tc.a, tc.b)
 
-		require.EqualValues(t, tc.wantMissingA, diffA)
-		require.EqualValues(t, tc.wantMissingB, diffB)
+		require.ElementsMatch(t, tc.wantMissingA.UnsortedList(), diffA.UnsortedList())
+		require.ElementsMatch(t, tc.wantMissingB.UnsortedList(), diffB.UnsortedList())
 	}
 }

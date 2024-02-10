@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/cert-manager/helm-tool/linter/parsetemplates"
+	"github.com/cert-manager/helm-tool/linter/sets"
 	"github.com/cert-manager/helm-tool/parser"
 )
 
@@ -36,17 +37,13 @@ func Lint(
 		return err
 	}
 
-	valuePathsDict := map[string]struct{}{}
+	valuePaths := sets.Set[string]{}
 	for _, section := range document.Sections {
 		for _, property := range section.Properties {
-			valuePathsDict[property.Path.PatternString()] = struct{}{}
+			valuePaths.Insert(property.Path.PatternString())
 		}
 	}
-	valuePathsDict = parsetemplates.MakeUniform(valuePathsDict)
-	valuePaths := []string{}
-	for path := range valuePathsDict {
-		valuePaths = append(valuePaths, path)
-	}
+	valuePaths = sets.RemovePrefixes(valuePaths)
 
 	exceptionStrings := []string{}
 	if exceptionsPath != "" {
@@ -61,7 +58,7 @@ func Lint(
 	missingValues, missingTemplates := DiffPaths(valuePaths, templatePaths)
 
 	succeeded := true
-	for _, missingValue := range missingValues {
+	for missingValue := range missingValues {
 		exceptionString := fmt.Sprintf("value missing from values.yaml: %s", missingValue)
 
 		if !slices.Contains(exceptionStrings, exceptionString) {
@@ -70,7 +67,7 @@ func Lint(
 		}
 	}
 
-	for _, missingTemplate := range missingTemplates {
+	for missingTemplate := range missingTemplates {
 		exceptionString := fmt.Sprintf("value missing from templates: %s", missingTemplate)
 
 		if !slices.Contains(exceptionStrings, exceptionString) {

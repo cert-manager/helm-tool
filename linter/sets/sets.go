@@ -14,45 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package parsetemplates
+package sets
 
 import (
-	"fmt"
-	"strings"
+	"maps"
 )
-
-func joinPath(path string, segments ...string) string {
-	joint := strings.Join(segments, ".")
-	joint = strings.TrimLeft(joint, ".")
-	path = fmt.Sprintf("%s.%s", path, joint)
-	path = strings.TrimRight(path, ".")
-	return path
-}
-
-func MakeUniform(paths map[string]struct{}) map[string]struct{} {
-	results := map[string]struct{}{}
-
-	for path := range paths {
-		sections := strings.Split(path, ".")
-		buildPath := ""
-	SectionLoop:
-		for _, section := range sections {
-			if section == "" {
-				continue SectionLoop
-			}
-
-			if strings.HasSuffix(section, "[*]") {
-				extraBuildPath := joinPath(buildPath, strings.TrimSuffix(section, "[*]"))
-				results[extraBuildPath] = struct{}{}
-			}
-
-			buildPath = joinPath(buildPath, section)
-			results[buildPath] = struct{}{}
-		}
-	}
-
-	return results
-}
 
 // Empty is public since it is used by some internal API objects for conversions between external
 // string arrays and internal sets, and conversion logic requires public types today.
@@ -60,6 +26,13 @@ type Empty struct{}
 
 // Set is a set of the same type elements, implemented via map[comparable]struct{} for minimal memory consumption.
 type Set[T comparable] map[T]Empty
+
+// New creates a new Set from a list of values.
+func New[T comparable](values ...T) Set[T] {
+	s := Set[T]{}
+	s.Insert(values...)
+	return s
+}
 
 // Insert adds items to the set.
 func (s Set[T]) Insert(items ...T) {
@@ -85,11 +58,32 @@ func (s Set[T]) Delete(items ...T) {
 	}
 }
 
-func getSet[T comparable, V comparable](m map[T]Set[V], k T) Set[V] {
-	if v, ok := m[k]; ok {
-		return v
+// UnsortedList returns the elements of the set as a list.
+func (s Set[T]) UnsortedList() []T {
+	list := make([]T, 0, len(s))
+	for item := range s {
+		list = append(list, item)
 	}
-	zero := Set[V]{}
-	m[k] = zero
-	return zero
+	return list
+}
+
+// Union returns a new set with all items from both sets.
+func Union[T comparable](sets ...Set[T]) Set[T] {
+	s := Set[T]{}
+	for _, set := range sets {
+		for item := range set {
+			s.Insert(item)
+		}
+	}
+	return s
+}
+
+// Remove returns a new set with all items from the input set
+// that are not in the other set.
+func Remove[T comparable](a Set[T], sets ...Set[T]) Set[T] {
+	compactedItems := maps.Clone(a)
+	for _, set := range sets {
+		compactedItems.Delete(set.UnsortedList()...)
+	}
+	return compactedItems
 }
