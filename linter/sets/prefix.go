@@ -32,9 +32,14 @@ func RemovePrefixes(items Set[string], sets ...Set[string]) Set[string] {
 	nonPrefixes := maps.Clone(items)
 
 	values := Union(append(sets, items)...).UnsortedList()
-	slices.Sort(values)
+	slices.SortFunc(values, func(a, b string) int {
+		aSort := strings.ReplaceAll(a, "[", ".[") + "."
+		bSort := strings.ReplaceAll(b, "[", ".[") + "."
+		return strings.Compare(aSort, bSort)
+	})
+
 	for i := 0; i < len(values); i++ {
-		// If the next value is an extension of the current value, skip
+		// If the next value is an extension of the current value, remove
 		// the current value.
 		if i+1 < len(values) && (strings.HasPrefix(values[i+1], values[i]+".") || strings.HasPrefix(values[i+1], values[i]+"[")) {
 			nonPrefixes.Delete(values[i])
@@ -54,12 +59,21 @@ func RemoveExtensions(items Set[string], sets ...Set[string]) Set[string] {
 	nonExtensions := maps.Clone(items)
 
 	values := Union(append(sets, items)...).UnsortedList()
-	slices.Sort(values)
+	slices.SortFunc(values, func(a, b string) int {
+		aSort := strings.ReplaceAll(a, "[", ".[") + "."
+		bSort := strings.ReplaceAll(b, "[", ".[") + "."
+		return strings.Compare(aSort, bSort)
+	})
+
+OuterLoop:
 	for i := 0; i < len(values); i++ {
-		// If the next value is an extension of the current value, skip
-		// the current value.
-		if i+1 < len(values) && (strings.HasPrefix(values[i+1], values[i]+".") || strings.HasPrefix(values[i+1], values[i]+"[")) {
-			nonExtensions.Delete(values[i+1])
+		// Remove all following values that are extensions of the current value.
+		for j := i + 1; j < len(values); j++ {
+			if !strings.HasPrefix(values[j], values[i]+".") && !strings.HasPrefix(values[j], values[i]+"[") {
+				continue OuterLoop
+			}
+
+			nonExtensions.Delete(values[j])
 		}
 	}
 
