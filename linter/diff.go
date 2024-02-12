@@ -17,72 +17,25 @@ limitations under the License.
 package linter
 
 import (
-	"sort"
-	"strings"
+	"github.com/cert-manager/helm-tool/linter/sets"
 )
 
-func DiffPaths(pathsA []string, pathsB []string) ([]string, []string) {
-	sort.Strings(pathsA)
-	sort.Strings(pathsB)
+// DiffPaths returns the paths that are missing from each set.
+// We consider a path to be missing if it is not present in the
+// other set, and if it is not a prefix or an extension of another
+// path in the other set. We consider a string a prefix of another
+// string if the other string starts with the first string followed
+// by a period or an opening square bracket.
+func DiffPaths(pathsA sets.Set[string], pathsB sets.Set[string]) (sets.Set[string], sets.Set[string]) {
+	pathsA, pathsB = sets.RemovePrefixes(pathsA), sets.RemovePrefixes(pathsB)
 
-	missingA := []string{}
-	missingB := []string{}
+	missingA := sets.Remove(pathsB, pathsA)
+	missingA = sets.RemovePrefixes(missingA, pathsA)
+	missingA = sets.RemoveExtensions(missingA, pathsA)
 
-	prefix := "<NOT A PREFIX>"
-	var i, j int
-	for i < len(pathsA) && j < len(pathsB) {
-		pathA := pathsA[i]
-		pathB := pathsB[j]
-
-		pathAHasPrefix := strings.HasPrefix(pathA, prefix)
-		pathBHasPrefix := strings.HasPrefix(pathB, prefix)
-
-		if pathA == pathB {
-			prefix = pathA
-			i++
-			j++
-			continue
-		}
-
-		if pathBHasPrefix && pathAHasPrefix {
-			prefix = "<NOT A PREFIX>"
-			continue
-		}
-
-		if pathA < pathB {
-			if !pathAHasPrefix {
-				missingB = append(missingB, pathA)
-			}
-			i++
-		} else {
-			if !pathBHasPrefix {
-				missingA = append(missingA, pathB)
-			}
-			j++
-		}
-	}
-
-	for i < len(pathsA) {
-		pathA := pathsA[i]
-
-		pathAHasPrefix := strings.HasPrefix(pathA, prefix)
-		if !pathAHasPrefix {
-			missingB = append(missingB, pathA)
-		}
-
-		i++
-	}
-
-	for j < len(pathsB) {
-		pathB := pathsB[j]
-
-		pathBHasPrefix := strings.HasPrefix(pathB, prefix)
-		if !pathBHasPrefix {
-			missingA = append(missingA, pathB)
-		}
-
-		j++
-	}
+	missingB := sets.Remove(pathsA, pathsB)
+	missingB = sets.RemovePrefixes(missingB, pathsB)
+	missingB = sets.RemoveExtensions(missingB, pathsB)
 
 	return missingA, missingB
 }

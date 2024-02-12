@@ -17,6 +17,7 @@ limitations under the License.
 package parsetemplates
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -25,14 +26,15 @@ import (
 	"text/template/parse"
 
 	"github.com/cert-manager/helm-tool/linter/parsetemplates/funcs_serdes"
+	"github.com/cert-manager/helm-tool/linter/sets"
 )
 
-func ListTemplatePaths(templatesPath string) ([]string, error) {
+func ListTemplatePaths(templatesPath string) (sets.Set[string], error) {
 	tmpl := template.New("ROOT")
 
 	tmpl.Funcs(funcs_serdes.FuncMap())
 
-	templates := Set[*template.Template]{}
+	templates := sets.Set[*template.Template]{}
 
 	// parse all templates
 	err := filepath.Walk(
@@ -62,12 +64,24 @@ func ListTemplatePaths(templatesPath string) ([]string, error) {
 		return nil, err
 	}
 
-	templatePathStrings, err := ListTemplatePathsFromTemplates(tmpl, templates)
-	if err != nil {
-		return nil, err
-	}
+	return ListTemplatePathsFromTemplates(tmpl, templates)
+}
 
-	return templatePathStrings, nil
+func joinPath(path string, segments ...string) string {
+	joint := strings.Join(segments, ".")
+	joint = strings.TrimLeft(joint, ".")
+	path = fmt.Sprintf("%s.%s", path, joint)
+	path = strings.TrimRight(path, ".")
+	return path
+}
+
+func getSet[T comparable, V comparable](m map[T]sets.Set[V], k T) sets.Set[V] {
+	if v, ok := m[k]; ok {
+		return v
+	}
+	zero := sets.Set[V]{}
+	m[k] = zero
+	return zero
 }
 
 type templateUsage struct {
@@ -82,12 +96,12 @@ const (
 
 func ListTemplatePathsFromTemplates(
 	tmpl *template.Template,
-	templates Set[*template.Template],
-) ([]string, error) {
+	templates sets.Set[*template.Template],
+) (sets.Set[string], error) {
 	// templateResults lists all property paths that are used in a template
-	templateResults := map[string]Set[string]{}
+	templateResults := map[string]sets.Set[string]{}
 	// templateUsage lists all templates that are used in a template
-	templateUsages := map[string]Set[templateUsage]{}
+	templateUsages := map[string]sets.Set[templateUsage]{}
 	for _, t := range tmpl.Templates() {
 		var selfNode, selfPath string
 		if _, ok := templates[t]; ok {
@@ -125,7 +139,7 @@ func ListTemplatePathsFromTemplates(
 		)
 	}
 
-	followPath(RootNode, Set[string]{}, templateUsages, func(node, path string) {
+	followPath(RootNode, sets.Set[string]{}, templateUsages, func(node, path string) {
 		for key := range templateResults[node] {
 			if strings.HasPrefix(key, RootPath) {
 				templateResults[RootNode].Insert(key)
@@ -135,30 +149,21 @@ func ListTemplatePathsFromTemplates(
 		}
 	})
 
-	paths := map[string]struct{}{}
+	paths := sets.Set[string]{}
 	for key := range templateResults[RootNode] {
-		if !strings.HasPrefix(key, joinPath(RootPath, "Values")) {
+		if !strings.HasPrefix(key, joinPath(RootPath, "Values")+".") {
 			continue
 		}
-		key = strings.TrimPrefix(key, joinPath(RootPath, "Values"))
-		paths[key] = struct{}{}
+		paths.Insert(strings.TrimPrefix(key, joinPath(RootPath, "Values")+"."))
 	}
 
-	paths = MakeUniform(paths)
-
-	// sort paths
-	values := []string{}
-	for key := range paths {
-		values = append(values, key)
-	}
-
-	return values, nil
+	return sets.RemovePrefixes(paths), nil
 }
 
 func followPath(
 	node string,
-	visited Set[string],
-	templateUsage map[string]Set[templateUsage],
+	visited sets.Set[string],
+	templateUsage map[string]sets.Set[templateUsage],
 	run func(node string, path string),
 ) {
 	if visited.Has(node) {

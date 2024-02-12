@@ -24,6 +24,7 @@ import (
 
 	"github.com/cert-manager/helm-tool/linter/parsetemplates"
 	"github.com/cert-manager/helm-tool/linter/parsetemplates/funcs_serdes"
+	"github.com/cert-manager/helm-tool/linter/sets"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +40,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ .Values.foo }}",
 			},
 			expectedPaths: []string{
-				".foo",
+				"foo",
 			},
 		},
 		{
@@ -48,8 +49,8 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ .Values.bar }}",
 			},
 			expectedPaths: []string{
-				".foo",
-				".bar",
+				"foo",
+				"bar",
 			},
 		},
 		{
@@ -58,7 +59,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ .Values.foo }}",
 			},
 			expectedPaths: []string{
-				".foo",
+				"foo",
 			},
 		},
 		{
@@ -68,8 +69,8 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ .Values.bar }}",
 			},
 			expectedPaths: []string{
-				".foo",
-				".bar",
+				"foo",
+				"bar",
 			},
 		},
 		{
@@ -78,7 +79,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ .Values.bar }}",
 			},
 			expectedPaths: []string{
-				".bar",
+				"bar",
 			},
 		},
 		{
@@ -86,8 +87,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ range $key, $value := .Values.test }}{{ end }}",
 			},
 			expectedPaths: []string{
-				".test",
-				".test[*]",
+				"test[*]",
 			},
 		},
 		{
@@ -95,8 +95,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ $aa := .Values.test1.test2 }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.test2",
+				"test1.test2",
 			},
 		},
 		{
@@ -104,9 +103,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ $aa := .Values.test1 }}{{ $bb := $aa.test2 }}{{ $bb.test3 }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.test2",
-				".test1.test2.test3",
+				"test1.test2.test3",
 			},
 		},
 		{
@@ -114,8 +111,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ $value := .Values.test }}{{ $value.value }}",
 			},
 			expectedPaths: []string{
-				".test",
-				".test.value",
+				"test.value",
 			},
 		},
 		{
@@ -123,10 +119,8 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ $value := .Values.test1 }}{{ $value := .Values.test2 }}{{ $value.value }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.value",
-				".test2",
-				".test2.value",
+				"test1.value",
+				"test2.value",
 			},
 		},
 		{
@@ -134,11 +128,8 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ range $key, $value := .Values.test }}{{ $key.key }}{{ $value.value.test1 }}{{ end }}",
 			},
 			expectedPaths: []string{
-				".test",
-				".test[*]",
-				".test[*].key",
-				".test[*].value",
-				".test[*].value.test1",
+				"test[*].key",
+				"test[*].value.test1",
 			},
 		},
 		{
@@ -146,8 +137,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ with .Values.test1 }}{{ .test2 }}{{ end }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.test2",
+				"test1.test2",
 			},
 		},
 		{
@@ -155,7 +145,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ with .Values.test1 }}{{ . }}{{ end }}",
 			},
 			expectedPaths: []string{
-				".test1",
+				"test1",
 			},
 		},
 		{
@@ -163,8 +153,8 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ if .Values.test1 }}{{ . }}{{ .Values.test2 }}{{ end }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test2",
+				"test1",
+				"test2",
 			},
 		},
 		{
@@ -174,10 +164,9 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ .Values.bar }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.test2",
-				".foo",
-				".bar",
+				"test1.test2",
+				"foo",
+				"bar",
 			},
 		},
 		{
@@ -188,13 +177,9 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ template \"T1\" .Values.test1 }}{{ template \"T2\" .Values.test1 }}{{ template \"T3\" .Values.test1 }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.test1",
-				".test1.test2",
-				".test1.test2.test1",
-				".test1.test3",
-				".test1.test3.test2",
-				".test1.test3.test2.test1",
+				"test1.test1",
+				"test1.test2.test1",
+				"test1.test3.test2.test1",
 			},
 		},
 		{
@@ -202,10 +187,8 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ $name := default .Values.test1 .Values.test2 }}{{ $name.test3 }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.test3",
-				".test2",
-				".test2.test3",
+				"test1.test3",
+				"test2.test3",
 			},
 		},
 		{
@@ -213,10 +196,8 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ $name := (tuple .Values.test1 .Values.test2) }}{{ $name.test3 }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.test3",
-				".test2",
-				".test2.test3",
+				"test1.test3",
+				"test2.test3",
 			},
 		},
 		{
@@ -224,10 +205,8 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ $name := (list .Values.test1 .Values.test2) }}{{ $name.test3 }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.test3",
-				".test2",
-				".test2.test3",
+				"test1.test3",
+				"test2.test3",
 			},
 		},
 		{
@@ -236,10 +215,18 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 				"{{ template \"T1\" (tuple .Values.test1 .Values.test2) }}",
 			},
 			expectedPaths: []string{
-				".test1",
-				".test1.test3",
-				".test2",
-				".test2.test3",
+				"test1.test3",
+				"test2.test3",
+			},
+		},
+		{
+			templates: []string{
+				"{{ .Values.app.logLevela }}",
+				"{{ .Values.app.name }}",
+			},
+			expectedPaths: []string{
+				"app.logLevela",
+				"app.name",
 			},
 		},
 	}
@@ -249,7 +236,7 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 
 		tmpl.Funcs(funcs_serdes.FuncMap())
 
-		templates := parsetemplates.Set[*template.Template]{}
+		templates := sets.Set[*template.Template]{}
 		for idx, tem := range tc.templates {
 			tpl, err := tmpl.New(fmt.Sprintf("input-item-%d", idx)).Parse(tem)
 			if err != nil {
@@ -265,8 +252,10 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 		}
 
 		sort.Strings(tc.expectedPaths)
-		sort.Strings(paths)
 
-		require.EqualValues(t, tc.expectedPaths, paths)
+		pathList := paths.UnsortedList()
+		sort.Strings(pathList)
+
+		require.EqualValues(t, tc.expectedPaths, pathList)
 	}
 }
