@@ -17,6 +17,7 @@ limitations under the License.
 package linter
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/cert-manager/helm-tool/linter/sets"
@@ -92,12 +93,20 @@ func TestDiffPaths(t *testing.T) {
 			wantMissingA: sets.New("app.logLevela", "app.name"),
 			wantMissingB: sets.New("app.test"),
 		},
+		{
+			a:            sets.New("app.test1", "app.test2"),
+			b:            sets.New("app"),
+			wantMissingA: sets.New[string](),
+			wantMissingB: sets.New[string](),
+		},
 	}
 
 	for _, tc := range testcases {
-		diffA, diffB := DiffPaths(tc.a, tc.b)
+		t.Run(fmt.Sprintf("%s-%s", tc.a, tc.b), func(t *testing.T) {
+			diffA, diffB := DiffPaths(tc.a, tc.b)
 
-		require.ElementsMatch(t, tc.wantMissingA.UnsortedList(), diffA.UnsortedList())
-		require.ElementsMatch(t, tc.wantMissingB.UnsortedList(), diffB.UnsortedList())
+			require.ElementsMatch(t, tc.wantMissingA.UnsortedList(), diffA.UnsortedList())
+			require.ElementsMatch(t, tc.wantMissingB.UnsortedList(), diffB.UnsortedList())
+		})
 	}
 }
