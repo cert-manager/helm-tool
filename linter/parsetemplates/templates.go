@@ -230,10 +230,12 @@ func walk(
 	case *parse.CommandNode:
 		// handle 'include "test.labels" .' separately
 		if len(tn.Args) >= 3 && tn.Args[0].String() == "include" && tn.Args[1].Type() == parse.NodeString {
-			foundTemplateFn(
-				tn.Args[1].(*parse.StringNode).Text,
-				getPath(tn.Args[2], parentNode, parentPath),
-			)
+			foreachPath(tn.Args[2], parentNode, parentPath, func(path string) {
+				foundTemplateFn(
+					tn.Args[1].(*parse.StringNode).Text,
+					path,
+				)
+			})
 		}
 		for _, snode := range tn.Args {
 			walk(snode, parentNode, parentPath, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
@@ -296,31 +298,45 @@ func walk(
 				foundVarDefFn(varname, node, path+"[*]")
 			},
 		)
-		path := getPath(tn.Pipe, parentNode, parentPath) + "[*]"
-		walk(tn.List, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
-		walk(tn.ElseList, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+		foreachPath(tn.Pipe, parentNode, parentPath, func(path string) {
+			walk(tn.List, parentNode, path+"[*]", foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+			walk(tn.ElseList, parentNode, path+"[*]", foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+		})
 	case *parse.WithNode:
-		path := getPath(tn.Pipe, parentNode, parentPath)
-		walk(tn.List, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
-		walk(tn.ElseList, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+		walk(tn.Pipe, parentNode, parentPath,
+			func(path string) {
+				foundPathFn(path)
+			},
+			func(templateName, context string) {
+				foundTemplateFn(templateName, context)
+			},
+			func(varname string, path string) {
+				foundVarUsageFn(varname, path)
+			},
+			func(varname string, node, path string) {
+				foundVarDefFn(varname, node, path)
+			},
+		)
+		foreachPath(tn.Pipe, parentNode, parentPath, func(path string) {
+			walk(tn.List, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+			walk(tn.ElseList, parentNode, path, foundPathFn, foundTemplateFn, foundVarUsageFn, foundVarDefFn)
+		})
 	}
 }
 
-func getPath(node parse.Node, parentNode string, parentPath string) string {
-	longestPath := parentPath
+func foreachPath(node parse.Node, parentNode string, parentPath string, found func(string)) {
 	walk(node, parentNode, parentPath,
 		func(path string) {
-			if len(path) > len(longestPath) {
-				longestPath = path
-			}
+			found(path)
 		},
 		func(_, context string) {
-			if len(context) > len(longestPath) {
-				longestPath = context
-			}
+			found(context)
 		},
-		func(varname string, path string) {},
-		func(varname string, node, path string) {},
+		func(varname string, path string) {
+			found(path)
+		},
+		func(varname string, node, path string) {
+			found(path)
+		},
 	)
-	return longestPath
 }
