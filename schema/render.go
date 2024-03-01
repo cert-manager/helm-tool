@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/cert-manager/helm-tool/heuristics"
 	"github.com/cert-manager/helm-tool/parser"
 	"github.com/cert-manager/helm-tool/paths"
 	"gopkg.in/yaml.v3"
@@ -91,6 +92,23 @@ func buildTree(document *parser.Document) (treeLevel, error) {
 			return treeLevel{}, err
 		}
 	}
+
+	// Add a global section to the root, as this is a special case.
+	// TODO: also handle the case where there is a global section in the
+	// values.yaml file.
+	root.add(paths.Path{}.WithProperty("global"), parser.Property{
+		Type: parser.TypeUnknown,
+		Description: parser.Comment{
+			CommentBlock: heuristics.CommentBlock{
+				Segments: []heuristics.CommentBlockSegment{
+					{
+						Type:     heuristics.ContentTypeText,
+						Contents: []string{"Global values shared across all (sub)charts"},
+					},
+				},
+			},
+		},
+	})
 
 	return root, nil
 }
