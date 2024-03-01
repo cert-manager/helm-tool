@@ -159,6 +159,14 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 		},
 		{
 			templates: []string{
+				"{{ if .Values.test1 }}{{ end }}",
+			},
+			expectedPaths: []string{
+				"test1",
+			},
+		},
+		{
+			templates: []string{
 				"{{define \"T1\" }}{{ .test2 }}{{end}} {{ .Values.foo }}",
 				"{{ template \"T1\" .Values.test1 }}",
 				"{{ .Values.bar }}",
@@ -227,6 +235,24 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 			expectedPaths: []string{
 				"app.logLevela",
 				"app.name",
+			},
+		},
+		{
+			templates: []string{
+				"{{- with (or .Values.test1 .Values.test2) }}{{- toYaml . | nindent 8 }}{{- end }}",
+			},
+			expectedPaths: []string{
+				"test1",
+				"test2",
+			},
+		},
+		{
+			templates: []string{
+				"{{- with (or .Values.test1 .Values.test2) }}aaa{{- end }}",
+			},
+			expectedPaths: []string{
+				"test1",
+				"test2",
 			},
 		},
 	}
