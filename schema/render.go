@@ -154,12 +154,6 @@ func Render(document *parser.Document) (string, error) {
 		definitions[prefixName(level.Path.String())] = newSchema
 	})
 
-	definitions["global"] = spec.Schema{
-		SchemaProps: spec.SchemaProps{
-			Description: "Global values shared across all (sub)charts",
-		},
-	}
-
 	type JsonSchema struct {
 		Schema string           `json:"$schema,omitempty"`
 		Ref    string           `json:"$ref,omitempty"`
