@@ -46,7 +46,7 @@ var Render = cobra.Command{
 	Use:   "render",
 	Short: "render documentation to stdout",
 	Run: func(cmd *cobra.Command, args []string) {
-		document, err := parser.Load(valuesFile)
+		document, err := parser.Load(valuesFile, false)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Could not open %q: %s\n", valuesFile, err)
 			os.Exit(1)
@@ -66,7 +66,7 @@ var Inject = cobra.Command{
 	Use:   "inject",
 	Short: "generate documentation and inject into existing markdown file",
 	Run: func(cmd *cobra.Command, args []string) {
-		document, err := parser.Load(valuesFile)
+		document, err := parser.Load(valuesFile, false)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Could not open %q: %s\n", valuesFile, err)
 			os.Exit(1)
@@ -82,7 +82,7 @@ var Inject = cobra.Command{
 var Schema = cobra.Command{
 	Use: "schema",
 	Run: func(cmd *cobra.Command, args []string) {
-		document, err := parser.Load(valuesFile)
+		document, err := parser.Load(valuesFile, true)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Could not open %q: %s\n", valuesFile, err)
 			os.Exit(1)
@@ -101,7 +101,7 @@ var Schema = cobra.Command{
 var Lint = cobra.Command{
 	Use: "lint",
 	Run: func(cmd *cobra.Command, args []string) {
-		document, err := parser.Load(valuesFile)
+		document, err := parser.Load(valuesFile, true)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Could not open %q: %s\n", valuesFile, err)
 			os.Exit(1)

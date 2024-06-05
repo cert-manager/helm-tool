@@ -29,6 +29,7 @@ import (
 const (
 	TagSection  = "docs:section"
 	TagIgnore   = "docs:ignore"
+	TagHidden   = "docs:hidden"
 	TagType     = "docs:type"
 	TagDefault  = "docs:default"
 	TagProperty = "docs:property"
@@ -90,7 +91,7 @@ type Node struct {
 	RawNode      *yaml.Node
 }
 
-func Load(filename string) (*Document, error) {
+func Load(filename string, includeHidden bool) (*Document, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -115,6 +116,11 @@ func Load(filename string) (*Document, error) {
 
 		// If we have a comment instructing us to skip this node, obey it
 		if comment.Tags.GetBool(TagIgnore) {
+			return true, nil
+		}
+
+		// If we have a comment instructing us to hide this node, obey it if we are not including hidden nodes
+		if comment.Tags.GetBool(TagHidden) && !includeHidden {
 			return true, nil
 		}
 
