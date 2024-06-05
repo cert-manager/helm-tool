@@ -88,7 +88,8 @@ Tags are used to alter how the documentation is generated. They are comments tha
 
 - `+docs:section=<name>` - Creates a new documentation section
 - `+docs:property` - Marks the field as a property that needs documentation
-- `+docs:ignore` - Ignore the field, not generating documentation
+- `+docs:ignore` - Ignore the field, not generating documentation, not used for linting or json schema generation
+- `+docs:hidden` - Hide the field from the documentation, but still use it for linting and json schema generation
 - `+docs:type=<type>` - Override the type information for the property
 - `+docs:default=<default>` - Override the default value for the property
 
