@@ -13,3 +13,17 @@
 # limitations under the License.
 
 include make/test-unit.mk
+
+.PHONY: dryrun-release
+## Dry-run release process
+## @category [shared] Release
+dryrun-release: export RELEASE_DRYRUN := true
+dryrun-release: release
+
+.PHONY: release
+## Publish all release artifacts (image + helm chart)
+## @category [shared] Release
+release: | $(NEEDS_CRANE) $(bin_dir)/scratch
+	$(MAKE) exe-publish
+
+	@echo "Release complete!"

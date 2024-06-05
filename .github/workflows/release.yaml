@@ -8,7 +8,7 @@ env:
   VERSION: ${{ github.ref_name }}
 
 jobs:
-  build_images:
+  release_exe:
     runs-on: ubuntu-latest
 
     permissions:
