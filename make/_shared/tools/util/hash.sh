@@ -14,9 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -eu -o pipefail
+set -o errexit
+set -o nounset
+set -o pipefail
 
 # This script is a wrapper for outputting purely the sha256 hash of the input file,
 # ideally in a portable way.
 
-sha256sum "$1" | cut -d" " -f1
+case "$(uname -s)" in
+    Darwin*)    shasum -a 256 "$1";;
+    *)          sha256sum "$1" 
+esac | cut -d" " -f1
