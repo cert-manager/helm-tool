@@ -8,19 +8,24 @@ env:
   VERSION: ${{ github.ref_name }}
 
 jobs:
-  github_release:
+  build_images:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write # needed for creating a PR
-      pull-requests: write # needed for creating a PR
+      contents: write # needed to write releases
+      id-token: write # needed for keyless signing
 
     steps:
+      - uses: actions/checkout@v4
+
+      - id: go-version
+        run: |
+          make print-go-version >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.go-version.outputs.result }}
+
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "$VERSION" \
-            --repo="$GITHUB_REPOSITORY" \
-            --title="${VERSION}" \
-            --draft \
-            --verify-tag 
+        run: make release

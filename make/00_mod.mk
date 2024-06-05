@@ -14,12 +14,13 @@
 
 repo_name := github.com/cert-manager/helm-tool
 
-build_names := helm-tool
+exe_build_names := helm-tool
+gorelease_file := .goreleaser.yml
 
-go_helm-tool_source_path := main.go
-go_helm-tool_ldflags := -X $(repo_name)/internal/version.AppVersion=$(VERSION) -X $(repo_name)/internal/version.GitCommit=$(GITCOMMIT)
+go_helm-tool_main_dir := .
+go_helm-tool_mod_dir := .
+go_helm-tool_ldflags := \
+	-X $(repo_name)/internal/version.AppVersion=$(VERSION) \
+	-X $(repo_name)/internal/version.GitCommit=$(GITCOMMIT)
 
-oci_helm-tool_base_image_flavor := static
-oci_helm-tool_image_name := quay.io/jetstack/helm-tool
-oci_helm-tool_image_tag := $(VERSION)
-oci_helm-tool_image_name_development := cert-manager.local/helm-tool
+golangci_lint_config := .golangci.yaml
