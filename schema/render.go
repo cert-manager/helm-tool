@@ -94,8 +94,6 @@ func buildTree(document *parser.Document) (treeLevel, error) {
 	}
 
 	// Add a global section to the root, as this is a special case.
-	// TODO: also handle the case where there is a global section in the
-	// values.yaml file.
 	root.add(paths.Path{}.WithProperty("global"), parser.Property{
 		Type: parser.TypeUnknown,
 		Description: parser.Comment{
@@ -164,7 +162,7 @@ func Render(document *parser.Document) (string, error) {
 			}
 
 			newSchema.SchemaProps.Properties = properties
-			if len(level.Children) > 0 {
+			if len(level.Children) > 0 && !(paths.Path{}).WithProperty("global").IsSubPathOf(level.Path) {
 				newSchema.SchemaProps.AdditionalProperties = &spec.SchemaOrBool{Allows: false}
 			}
 		}
