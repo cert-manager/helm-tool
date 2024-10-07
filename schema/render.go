@@ -50,12 +50,9 @@ func (t *treeLevel) Type() parser.Type {
 	return parser.TypeUnknown
 }
 
-func (t *treeLevel) add(path paths.Path, property parser.Property, pruneBranch bool) error {
+func (t *treeLevel) add(path paths.Path, property parser.Property) error {
 	if path.Equal(t.Path) {
 		t.Property = &property
-		if pruneBranch {
-			t.Children = nil
-		}
 		return nil
 	}
 
@@ -65,14 +62,14 @@ func (t *treeLevel) add(path paths.Path, property parser.Property, pruneBranch b
 
 	for i, child := range t.Children {
 		if child.Path.IsSubPathOf(path) {
-			child.add(path, property, pruneBranch)
+			child.add(path, property)
 			t.Children[i] = child
 			return nil
 		}
 	}
 
 	t.Children = append(t.Children, treeLevel{Path: t.Path.Expand(path, 1)})
-	t.Children[len(t.Children)-1].add(path, property, pruneBranch)
+	t.Children[len(t.Children)-1].add(path, property)
 	return nil
 }
 
@@ -91,7 +88,7 @@ func buildTree(document *parser.Document) (treeLevel, error) {
 
 	root := treeLevel{}
 	for _, property := range allProperties {
-		if err := root.add(property.Path, property, false); err != nil {
+		if err := root.add(property.Path, property); err != nil {
 			return treeLevel{}, err
 		}
 	}
@@ -109,7 +106,7 @@ func buildTree(document *parser.Document) (treeLevel, error) {
 				},
 			},
 		},
-	}, true)
+	})
 
 	return root, nil
 }
@@ -165,7 +162,12 @@ func Render(document *parser.Document) (string, error) {
 			}
 
 			newSchema.SchemaProps.Properties = properties
-			if len(level.Children) > 0 {
+			// For objects that we know the properties of, we disallow additional properties. Only when the
+			// object is part of the "global" section do we allow additional properties. This is because this
+			// "global" section is a special Helm section that is shared between all charts and subcharts and
+			// thus might contain properties relevant only to other charts.
+			// See https://helm.sh/docs/chart_template_guide/subcharts_and_globals/#global-chart-values for more information.
+			if len(level.Children) > 0 && !(paths.Path{}).WithProperty("global").IsSubPathOf(level.Path) {
 				newSchema.SchemaProps.AdditionalProperties = &spec.SchemaOrBool{Allows: false}
 			}
 		}
