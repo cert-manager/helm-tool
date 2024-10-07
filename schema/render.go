@@ -50,12 +50,9 @@ func (t *treeLevel) Type() parser.Type {
 	return parser.TypeUnknown
 }
 
-func (t *treeLevel) add(path paths.Path, property parser.Property, pruneBranch bool) error {
+func (t *treeLevel) add(path paths.Path, property parser.Property) error {
 	if path.Equal(t.Path) {
 		t.Property = &property
-		if pruneBranch {
-			t.Children = nil
-		}
 		return nil
 	}
 
@@ -65,14 +62,14 @@ func (t *treeLevel) add(path paths.Path, property parser.Property, pruneBranch b
 
 	for i, child := range t.Children {
 		if child.Path.IsSubPathOf(path) {
-			child.add(path, property, pruneBranch)
+			child.add(path, property)
 			t.Children[i] = child
 			return nil
 		}
 	}
 
 	t.Children = append(t.Children, treeLevel{Path: t.Path.Expand(path, 1)})
-	t.Children[len(t.Children)-1].add(path, property, pruneBranch)
+	t.Children[len(t.Children)-1].add(path, property)
 	return nil
 }
 
@@ -91,12 +88,14 @@ func buildTree(document *parser.Document) (treeLevel, error) {
 
 	root := treeLevel{}
 	for _, property := range allProperties {
-		if err := root.add(property.Path, property, false); err != nil {
+		if err := root.add(property.Path, property); err != nil {
 			return treeLevel{}, err
 		}
 	}
 
 	// Add a global section to the root, as this is a special case.
+	// TODO: also handle the case where there is a global section in the
+	// values.yaml file.
 	root.add(paths.Path{}.WithProperty("global"), parser.Property{
 		Type: parser.TypeUnknown,
 		Description: parser.Comment{
@@ -109,7 +108,7 @@ func buildTree(document *parser.Document) (treeLevel, error) {
 				},
 			},
 		},
-	}, true)
+	})
 
 	return root, nil
 }
