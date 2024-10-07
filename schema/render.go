@@ -162,6 +162,11 @@ func Render(document *parser.Document) (string, error) {
 			}
 
 			newSchema.SchemaProps.Properties = properties
+			// For objects that we know the properties of, we disallow additional properties. Only when the
+			// object is part of the "global" section do we allow additional properties. This is because this
+			// "global" section is a special Helm section that is shared between all charts and subcharts and
+			// thus might contain properties relevant only to other charts.
+			// See https://helm.sh/docs/chart_template_guide/subcharts_and_globals/#global-chart-values for more information.
 			if len(level.Children) > 0 && !(paths.Path{}).WithProperty("global").IsSubPathOf(level.Path) {
 				newSchema.SchemaProps.AdditionalProperties = &spec.SchemaOrBool{Allows: false}
 			}
