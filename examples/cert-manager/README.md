@@ -313,7 +313,7 @@ Forces cert-manager to only use the recursive nameservers for verification. Enab
 
 Additional command line flags to pass to cert-manager controller binary. To see all available flags run docker run quay.io/jetstack/cert-manager-controller:<version> --help  
   
-Use this flag to enable or disable arbitrary controllers, for example, disable the CertificiateRequests approver  
+Use this flag to enable or disable arbitrary controllers, for example, disable the CertificateRequests approver  
   
 For example:
 
