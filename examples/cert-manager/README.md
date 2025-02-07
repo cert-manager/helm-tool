@@ -1098,7 +1098,7 @@ Ingress rule for the webhook network policy, by default will allow all inbound t
 >         cidr: 0.0.0.0/0
 > ```
 
-Egress rule for the webhook network policy, by default will allow all outbound traffic traffic to ports 80 and 443, as well as DNS ports
+Egress rule for the webhook network policy, by default will allow all outbound traffic to ports 80 and 443, as well as DNS ports
 
 #### **webhook.volumes** ~ `array`
 > Default value:

@@ -812,7 +812,7 @@ webhook:
           cidr: 0.0.0.0/0
 
     # Egress rule for the webhook network policy, by default will allow all
-    # outbound traffic traffic to ports 80 and 443, as well as DNS ports
+    # outbound traffic to ports 80 and 443, as well as DNS ports
     # +docs:property
     egress:
     - ports:
