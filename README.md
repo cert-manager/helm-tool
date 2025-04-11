@@ -1,8 +1,11 @@
-# Helm Docgen
+# Helm tool
 
-Helm Docgen generates documentation for Helm charts by reading the values.yaml file. It works by reading the yaml content and the surrounding comments to infer information.
+Tool for generating documentation, generating values.schema.json and linting values.yaml. It works by reading the yaml content and the surrounding comments to infer information.
 
 ## Usage
+
+- `helm-tool schema -i values.yaml > values.schema.json` - Generate a values.schema.json file based on the properties in values.yaml
+- `helm-tool lint -i values.yaml -d templates -e values.linter.exceptions` - Lint the values.yaml properties based on what properties are used in the template (imperfect linter, might miss errors or report false positives)
 
 There are two commands that can be used to generate documentation, `helm-tool render` and `helm-tool inject`.
 
@@ -92,4 +95,3 @@ Tags are used to alter how the documentation is generated. They are comments tha
 - `+docs:hidden` - Hide the field from the documentation, but still use it for linting and json schema generation
 - `+docs:type=<type>` - Override the type information for the property
 - `+docs:default=<default>` - Override the default value for the property
-
