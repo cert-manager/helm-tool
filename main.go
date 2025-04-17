@@ -21,11 +21,12 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/spf13/cobra"
+
 	"github.com/cert-manager/helm-tool/linter"
 	"github.com/cert-manager/helm-tool/parser"
 	"github.com/cert-manager/helm-tool/render"
 	"github.com/cert-manager/helm-tool/schema"
-	"github.com/spf13/cobra"
 )
 
 var (

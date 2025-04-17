@@ -26,9 +26,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/cert-manager/helm-tool/parser"
-
 	"github.com/Masterminds/sprig/v3"
+
+	"github.com/cert-manager/helm-tool/parser"
 )
 
 //go:embed markdown-plain
@@ -64,7 +64,7 @@ func Render(templateName string, document *parser.Document) (string, error) {
 
 	funcMap := sprig.TxtFuncMap()
 	funcMap["indentWith"] = func(pad string, v string) string {
-		return pad + strings.Replace(v, "\n", "\n"+pad, -1)
+		return pad + strings.ReplaceAll(v, "\n", "\n"+pad)
 	}
 
 	template, err := template.New(templateName).Funcs(funcMap).Parse(string(templateBytes))
