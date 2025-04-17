@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cert-manager/helm-tool/linter/sets"
 	"github.com/stretchr/testify/require"
+
+	"github.com/cert-manager/helm-tool/linter/sets"
 )
 
 func TestDiffPaths(t *testing.T) {

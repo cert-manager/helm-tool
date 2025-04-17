@@ -22,10 +22,11 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/cert-manager/helm-tool/linter/parsetemplates"
 	"github.com/cert-manager/helm-tool/linter/parsetemplates/funcs_serdes"
 	"github.com/cert-manager/helm-tool/linter/sets"
-	"github.com/stretchr/testify/require"
 )
 
 func TestListTemplatePathsFromTemplates(t *testing.T) {

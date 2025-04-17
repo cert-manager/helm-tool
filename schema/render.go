@@ -20,11 +20,12 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+
 	"github.com/cert-manager/helm-tool/heuristics"
 	"github.com/cert-manager/helm-tool/parser"
 	"github.com/cert-manager/helm-tool/paths"
-	"gopkg.in/yaml.v3"
-	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 type treeLevel struct {
