@@ -38,7 +38,7 @@ func RemovePrefixes(items Set[string], sets ...Set[string]) Set[string] {
 		return strings.Compare(aSort, bSort)
 	})
 
-	for i := 0; i < len(values); i++ {
+	for i := range values {
 		// If the next value is an extension of the current value, remove
 		// the current value.
 		if i+1 < len(values) && (strings.HasPrefix(values[i+1], values[i]+".") || strings.HasPrefix(values[i+1], values[i]+"[")) {
@@ -66,7 +66,7 @@ func RemoveExtensions(items Set[string], sets ...Set[string]) Set[string] {
 	})
 
 OuterLoop:
-	for i := 0; i < len(values); i++ {
+	for i := range values {
 		// Remove all following values that are extensions of the current value.
 		for j := i + 1; j < len(values); j++ {
 			if !strings.HasPrefix(values[j], values[i]+".") && !strings.HasPrefix(values[j], values[i]+"[") {
