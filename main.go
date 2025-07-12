@@ -17,12 +17,16 @@ limitations under the License.
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
+	"slices"
 
 	"github.com/spf13/cobra"
 
+	"github.com/cert-manager/helm-tool/baker"
 	"github.com/cert-manager/helm-tool/linter"
 	"github.com/cert-manager/helm-tool/parser"
 	"github.com/cert-manager/helm-tool/render"
@@ -35,6 +39,7 @@ var (
 	exceptionsFile  string
 	targetFile      string
 	templateName    string
+	imagePathsFile  string
 	headerSearch    = regexValue{regexp.MustCompile(`(?m)^##\s+Parameters *$`)}
 	footerSearch    = regexValue{regexp.MustCompile(`(?m)^##?\s+.*$`)}
 )
@@ -118,6 +123,67 @@ var Lint = cobra.Command{
 	},
 }
 
+var ImagesExtract = cobra.Command{
+	Use:  "extract",
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		inputPath := args[0]
+
+		images, err := baker.Extract(context.TODO(), inputPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not extract: %s\n", err)
+			os.Exit(1)
+		}
+
+		imagePaths := []string{}
+		for imagePath := range images {
+			imagePaths = append(imagePaths, imagePath)
+		}
+		slices.Sort(imagePaths)
+
+		if err := json.NewEncoder(os.Stdout).Encode(imagePaths); err != nil {
+			fmt.Fprintf(os.Stderr, "Could print found images: %s\n", err)
+			os.Exit(1)
+		}
+	},
+}
+
+var ImagesBake = cobra.Command{
+	Use:  "bake",
+	Args: cobra.ExactArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		inputPath := args[0]
+		outputPath := args[1]
+
+		if len(imagePathsFile) == 0 {
+			fmt.Fprintf(os.Stderr, "--paths flag not provided.\n")
+			os.Exit(1)
+		}
+
+		jsonBlob, err := os.ReadFile(imagePathsFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not read --paths file: %s\n", err)
+			os.Exit(1)
+		}
+
+		imagePaths := []string{}
+		if err := json.Unmarshal(jsonBlob, &imagePaths); err != nil {
+			fmt.Fprintf(os.Stderr, "Could not parse --paths file: %s\n", err)
+			os.Exit(1)
+		}
+
+		images, err := baker.Bake(context.TODO(), inputPath, outputPath, imagePaths)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not bake: %s\n", err)
+			os.Exit(1)
+		}
+
+		for path, action := range images {
+			fmt.Fprintf(os.Stderr, "%s: %s -> %s\n", path, action.In, action.Out)
+		}
+	},
+}
+
 func init() {
 	Cmd.PersistentFlags().StringVarP(&valuesFile, "values", "i", "values.yaml", "values file used to generate the documentation")
 
@@ -135,6 +201,15 @@ func init() {
 	Cmd.AddCommand(&Lint)
 	Lint.PersistentFlags().StringVarP(&templatesFolder, "templates", "d", "templates", "templates folder used to lint the values file")
 	Lint.PersistentFlags().StringVarP(&exceptionsFile, "exceptions", "e", "", "file containing exceptions to the linting rules")
+
+	images := cobra.Command{
+		Use: "images",
+	}
+	Cmd.AddCommand(&images)
+
+	images.AddCommand(&ImagesExtract)
+	images.AddCommand(&ImagesBake)
+	ImagesBake.PersistentFlags().StringVarP(&imagePathsFile, "paths", "p", "", "file containing paths of image._defaultReference in values.yaml (used as check)")
 }
 
 func main() {
