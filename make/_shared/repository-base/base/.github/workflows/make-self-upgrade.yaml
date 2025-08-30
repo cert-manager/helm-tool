@@ -18,8 +18,8 @@ jobs:
     if: github.repository == '{{REPLACE:GH-REPOSITORY}}'
 
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
+      id-token: write
     
     env:
       SOURCE_BRANCH: "${{ github.ref_name }}"
@@ -66,6 +66,16 @@ jobs:
           echo "result=$is_up_to_date" >> "$GITHUB_OUTPUT"
 
       - if: ${{ steps.is-up-to-date.outputs.result != 'true' }}
+        name: Octo STS Token Exchange
+        uses: octo-sts/action@e480437973a6f6ac2e9caa40ecabedc870d76395 # main
+        id: octo-sts
+        with:
+          scope: '{{REPLACE:GH-REPOSITORY}}'
+          identity: make-self-upgrade
+
+      - if: ${{ steps.is-up-to-date.outputs.result != 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
         run: |
           git config --global user.name "cert-manager-bot"
           git config --global user.email "cert-manager-bot@users.noreply.github.com"
@@ -74,6 +84,8 @@ jobs:
 
       - if: ${{ steps.is-up-to-date.outputs.result != 'true' }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
         with:
           script: |
             const { repo, owner } = context.repo;
