@@ -1,0 +1,11 @@
+issuer: https://token.actions.githubusercontent.com
+subject_pattern: repo:{{REPLACE:GH-REPOSITORY}}:ref:refs/heads/(main|master)
+
+permissions:
+  administration: read
+  contents: write
+  issues: write
+  pull_requests: write
+  security_events: read
+  statuses: write
+  workflows: write

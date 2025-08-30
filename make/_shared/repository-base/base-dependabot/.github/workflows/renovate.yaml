@@ -3,9 +3,13 @@
 
 name: Renovate
 on:
+  push:
+    branches:
+      - main
+      - master
   workflow_dispatch: {}
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0/30 * * * *'
 
 permissions:
   contents: read
@@ -17,10 +21,8 @@ jobs:
     if: github.repository == '{{REPLACE:GH-REPOSITORY}}'
 
     permissions:
-      contents: write
-      issues: write
-      statuses: write
-      pull-requests: write
+      contents: read
+      id-token: write
 
     steps:
       - name: Fail if branch is not head of branch.
@@ -43,11 +45,18 @@ jobs:
         with:
           go-version: ${{ steps.go-version.outputs.result }}
 
+      - name: Octo STS Token Exchange
+        uses: octo-sts/action@e480437973a6f6ac2e9caa40ecabedc870d76395 # main
+        id: octo-sts
+        with:
+          scope: '{{REPLACE:GH-REPOSITORY}}'
+          identity: renovate
+
       - name: Self-hosted Renovate
         uses: renovatebot/github-action@a447f09147d00e00ae2a82ad5ef51ca89352da80 # v43.0.9
         with:
           configurationFile: .github/renovate.json5
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.octo-sts.outputs.token }}
         env:
           RENOVATE_REPOSITORIES: '["${{ github.repository }}"]'
           RENOVATE_ONBOARDING: "false"
