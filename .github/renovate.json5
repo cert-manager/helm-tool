@@ -25,7 +25,7 @@
   ],
   postUpgradeTasks: {
     commands: [
-      'make generate',
+      'make vendor-go generate',
     ],
     executionMode: 'branch',
   },
