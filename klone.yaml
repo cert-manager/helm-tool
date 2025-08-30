@@ -45,7 +45,7 @@ targets:
     - folder_name: repository-base
       repo_url: https://github.com/cert-manager/makefile-modules.git
       repo_ref: octo-sts-poc
-      repo_hash: 82d01bc604c400227ad50bd268ad4cf9dd468ec6
+      repo_hash: ab697d628d91bb84ffceca8c166bef14990c38be
       repo_path: modules/repository-base
     - folder_name: tools
       repo_url: https://github.com/cert-manager/makefile-modules.git
