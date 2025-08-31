@@ -13,6 +13,12 @@ permissions:
 jobs:
   renovate:
     runs-on: ubuntu-latest
+    # This concurrency control is added to allow a quite aggressive cron schedule (see above),
+    # while at the same time avoid multiple Renovate runs at the same time.
+    # In some of our projects, e.g. cert-manager, the Renovate run can take some time.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: false # Must allow the longest running job to finish.
 
     if: github.repository == '{{REPLACE:GH-REPOSITORY}}'
 
