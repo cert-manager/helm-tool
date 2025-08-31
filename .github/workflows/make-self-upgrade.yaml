@@ -18,7 +18,6 @@ jobs:
     if: github.repository == 'cert-manager/helm-tool'
 
     permissions:
-      contents: read
       id-token: write
     
     env:
