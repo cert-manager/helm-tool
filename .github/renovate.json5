@@ -1,4 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>cert-manager/renovate-config/default.json5"],
+  "extends": ["github>cert-manager/renovate-config:default.json5"],
 }
