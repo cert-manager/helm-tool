@@ -1,4 +1,31 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>cert-manager/renovate-config:default.json5"],
+  "customManagers": [
+    {
+      "customType": "jsonata",
+      "fileFormat": "yaml",
+      "managerFilePatterns": ["klone.yaml"],
+      "matchStrings": ['targets.*.{ \
+  "datasource": "git-refs", \
+  "depName": folder_name, \
+  "packageName": repo_url, \
+  "currentValue": repo_ref, \
+  "currentDigest": repo_hash \
+}']
+    }
+  ],
+  packageRules: [
+    {
+      "groupName": 'Makefile Modules',
+      "matchManagers": ["custom.jsonata"],
+      "matchFileNames": ["klone.yaml"],
+      "postUpgradeTasks": {
+        "commands": [
+          "make generate-klone",
+          "make generate"
+        ],
+      }
+    }
+  ]
 }
