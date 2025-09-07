@@ -6,13 +6,15 @@
       "customType": "jsonata",
       "fileFormat": "yaml",
       "managerFilePatterns": ["klone.yaml"],
-      "matchStrings": ['targets.*.{ \
-  "datasource": "git-refs", \
-  "depName": folder_name, \
-  "packageName": repo_url, \
-  "currentValue": repo_ref, \
-  "currentDigest": repo_hash \
-}']
+      "matchStrings": [
+        'targets.*.{\
+          "datasource": "git-refs",\
+          "depName": folder_name,\
+          "packageName": repo_url,\
+          "currentValue": repo_ref,\
+          "currentDigest": repo_hash\
+        }',
+      ]
     }
   ],
   packageRules: [
