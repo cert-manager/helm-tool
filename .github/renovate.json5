@@ -9,6 +9,7 @@
       "matchStrings": [
         'targets.*.{\
           "datasource": "git-refs",\
+          "versioning": "git",\
           "depName": folder_name,\
           "packageName": repo_url,\
           "currentValue": repo_ref,\
