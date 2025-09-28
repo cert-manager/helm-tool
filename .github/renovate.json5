@@ -25,6 +25,7 @@
       "matchFileNames": ["klone.yaml"],
       "postUpgradeTasks": {
         "commands": [
+          "make vendor-go",
           "make generate-klone",
           "make generate"
         ],
