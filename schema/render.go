@@ -134,7 +134,7 @@ func Render(document *parser.Document) (string, error) {
 			newSchema.SchemaProps.Description = level.Property.Description.String()
 
 			if level.Property.Default != "" {
-				var defaultValue interface{}
+				var defaultValue any
 				if err := yaml.Unmarshal([]byte(level.Property.Default), &defaultValue); err != nil {
 					panic(err)
 				}
