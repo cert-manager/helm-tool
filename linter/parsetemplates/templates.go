@@ -18,8 +18,8 @@ package parsetemplates
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"text/template"
@@ -37,29 +37,27 @@ func ListTemplatePaths(templatesPath string) (sets.Set[string], error) {
 	templates := sets.Set[*template.Template]{}
 
 	// parse all templates
-	err := filepath.Walk(
-		templatesPath,
-		func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if info.IsDir() {
-				return nil
-			}
-
-			contents, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-
-			t, err := tmpl.New(path).Parse(string(contents))
-			if err != nil {
-				return err
-			}
-			templates[t] = struct{}{}
+	fsys := os.DirFS(templatesPath)
+	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
 			return nil
-		},
-	)
+		}
+
+		contents, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return err
+		}
+
+		t, err := tmpl.New(path).Parse(string(contents))
+		if err != nil {
+			return err
+		}
+		templates[t] = struct{}{}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
