@@ -191,7 +191,7 @@ func ParseCommentIntoBlocks(comment string) []CommentBlock {
 	var currentBlock CommentBlock
 	var currentSegment CommentBlockSegment
 
-	for _, line := range strings.Split(comment, "\n") {
+	for line := range strings.SplitSeq(comment, "\n") {
 		// Get the line without leading and training spaces, this means the
 		// first character should be '#'
 		trimmedLine := strings.TrimSpace(line)
