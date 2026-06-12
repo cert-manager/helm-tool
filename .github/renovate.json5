@@ -29,6 +29,7 @@
           "make generate-klone",
           "make generate"
         ],
+        "executionMode": "branch"
       }
     }
   ]
