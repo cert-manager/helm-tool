@@ -36,7 +36,21 @@ import (
 //go:embed markdown-table-vertical
 var templates embed.FS
 
+// openTemplate resolves a template name to a readable file.
+//
+// Bare names (without a path separator) are resolved exclusively
+// against the embedded FS, which contains the built-in templates
+// (markdown-plain, markdown-table, markdown-table-vertical). This
+// prevents an attacker-controlled file in the working directory from
+// shadowing a built-in.
+//
+// To use a custom template on the filesystem, pass an explicit path
+// (e.g. -t ./custom.tpl).
 func openTemplate(path string) (fs.File, error) {
+	if !strings.ContainsRune(path, os.PathSeparator) {
+		return templates.Open(path)
+	}
+
 	file, err := os.Open(path)
 	if os.IsNotExist(err) {
 		return templates.Open(path)
@@ -62,7 +76,7 @@ func Render(templateName string, document *parser.Document) (string, error) {
 		return "", err
 	}
 
-	funcMap := sprig.TxtFuncMap()
+	funcMap := sprig.HermeticTxtFuncMap()
 	funcMap["indentWith"] = func(pad string, v string) string {
 		return pad + strings.ReplaceAll(v, "\n", "\n"+pad)
 	}
