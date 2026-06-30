@@ -109,6 +109,9 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 		HeadComments: parseComments(root.HeadComment),
 		FootComment:  parseComments(root.FootComment),
 	}
+	// visited prevents alias cycles (CWE-674 stack overflow) and alias fan-out
+	// (OOM) by stopping re-descent into any non-end node already on this walk.
+	visited := map[*yaml.Node]bool{}
 	err = walk(node, func(node Node) (bool, error) {
 		comment := pop(&node.HeadComments)
 
@@ -130,6 +133,12 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 		// +docs:property tag (or if they have no values).
 		if !isEndNode(node, comment) {
 			parseCommentsOntoDocument(node.Path.Parent(), &document, []Comment{comment})
+			// Only guard recursion into children — end nodes are always safe to
+			// visit multiple times (scalars have no children to cycle through).
+			if visited[node.RawNode] {
+				return true, nil
+			}
+			visited[node.RawNode] = true
 			return false, nil
 		}
 
