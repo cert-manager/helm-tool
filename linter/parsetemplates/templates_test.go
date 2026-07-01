@@ -19,6 +19,7 @@ package parsetemplates_test
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
 	"text/template"
 
@@ -285,4 +286,32 @@ func TestListTemplatePathsFromTemplates(t *testing.T) {
 
 		require.EqualValues(t, tc.expectedPaths, pathList)
 	}
+}
+
+// TestListTemplatePathsExponentialLattice guards against CWE-407: a width-2
+// lattice of depth k has 2^k acyclic paths, so the walk must abort with an
+// error rather than enumerate them all. depth=30 => 2^30 paths, well past the
+// visit budget.
+func TestListTemplatePathsExponentialLattice(t *testing.T) {
+	const depth = 30
+
+	var b strings.Builder
+	for i := range depth {
+		// Two calls with different contexts (.a/.b) => two distinct edges.
+		fmt.Fprintf(&b, "{{define \"n%d\"}}{{template \"n%d\" .a}}{{template \"n%d\" .b}}{{end}}", i, i+1, i+1)
+	}
+	fmt.Fprintf(&b, "{{define \"n%d\"}}{{ .Values.x }}{{end}}", depth)
+	b.WriteString("{{template \"n0\" . }}")
+
+	tmpl := template.New("ROOT")
+	tmpl.Funcs(funcs_serdes.FuncMap())
+
+	templates := sets.Set[*template.Template]{}
+	tpl, err := tmpl.New("boom").Parse(b.String())
+	require.NoError(t, err)
+	templates[tpl] = struct{}{}
+
+	_, err = parsetemplates.ListTemplatePathsFromTemplates(tmpl, templates)
+	require.Error(t, err, "expected the exponential lattice to be rejected, not enumerated")
+	require.Contains(t, err.Error(), "too complex")
 }

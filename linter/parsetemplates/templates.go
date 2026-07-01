@@ -90,6 +90,12 @@ type templateUsage struct {
 const (
 	RootNode = "<root-node>"
 	RootPath = "<root-path>"
+
+	// maxFollowPathVisits caps followPath's total node visits. It enumerates
+	// every acyclic path, so an attacker-supplied width-2 lattice of depth k has
+	// 2^k paths and can exhaust CPU/memory (CWE-407). This bound is far above any
+	// real chart; exceeding it is an error, not a silent truncation.
+	maxFollowPathVisits = 1_000_000
 )
 
 func ListTemplatePathsFromTemplates(
@@ -137,7 +143,8 @@ func ListTemplatePathsFromTemplates(
 		)
 	}
 
-	followPath(RootNode, sets.Set[string]{}, templateUsages, func(node, path string) {
+	budget := maxFollowPathVisits
+	completed := followPath(RootNode, sets.Set[string]{}, &budget, templateUsages, func(node, path string) {
 		for key := range templateResults[node] {
 			if strings.HasPrefix(key, RootPath) {
 				templateResults[RootNode].Insert(key)
@@ -146,6 +153,14 @@ func ListTemplatePathsFromTemplates(
 			}
 		}
 	})
+	if !completed {
+		return nil, fmt.Errorf(
+			"template reference graph is too complex to analyse (exceeded %d node visits): "+
+				"this usually means the templates contain an excessively deep or highly branching "+
+				"set of {{ template }}/{{ include }} references",
+			maxFollowPathVisits,
+		)
+	}
 
 	paths := sets.Set[string]{}
 	for key := range templateResults[RootNode] {
@@ -158,26 +173,42 @@ func ListTemplatePathsFromTemplates(
 	return sets.RemovePrefixes(paths), nil
 }
 
+// followPath walks the template reference graph from node, invoking run for
+// every reachable node. budget is shared across the recursion and decremented
+// per visit; it returns false (incomplete, results must be discarded) if the
+// walk was aborted on budget exhaustion, true otherwise.
 func followPath(
 	node string,
 	visited sets.Set[string],
+	budget *int,
 	templateUsage map[string]sets.Set[templateUsage],
 	run func(node string, path string),
-) {
+) bool {
+	if *budget <= 0 {
+		return false
+	}
+	*budget--
+
 	if visited.Has(node) {
-		return
+		return true
 	}
 	visited.Insert(node)
 
+	completed := true
 	for usage := range templateUsage[node] {
 		// Recursively follow the path until we reach the <root-node>
-		followPath(usage.node, visited, templateUsage, func(node, path string) {
+		if !followPath(usage.node, visited, budget, templateUsage, func(node, path string) {
 			run(node, joinPath(usage.context, path))
-		})
+		}) {
+			completed = false
+			break
+		}
 	}
 	run(node, "")
 
 	visited.Delete(node)
+
+	return completed
 }
 
 func walk(
