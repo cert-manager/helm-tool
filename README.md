@@ -87,11 +87,24 @@ The detected name and type is not always correct, these can be provided using ta
 
 ### Tags
 
-Tags are used to alter how the documentation is generated. They are comments that exist within a comment block
+Tags are used to alter how the documentation is generated. They are provided as comments that exist within a comment block.
 
 - `+docs:section=<name>` - Creates a new documentation section
 - `+docs:property` - Marks the field as a property that needs documentation
 - `+docs:ignore` - Ignore the field, not generating documentation, not used for linting or json schema generation
 - `+docs:hidden` - Hide the field from the documentation, but still use it for linting and json schema generation
-- `+docs:type=<type>` - Override the type information for the property
+- `+docs:type=<type>` - Override the type information for the property. Valid values are listed below, under "Types"
 - `+docs:default=<default>` - Override the default value for the property
+
+### Types
+
+The type of a property is normally detected automatically from the underlying YAML value, but it can be overridden
+using the `+docs:type=<type>` tag. The following types are supported:
+
+- `string` - A plain string value, detected from YAML strings. Rendered as `string` in the JSON schema
+- `number` - A numeric value, detected from both YAML integers and floats. Rendered as `number` in the JSON schema
+- `bool` - A boolean value, detected from YAML booleans. Rendered as `boolean` in the JSON schema
+- `timestamp` - A timestamp value, detected from YAML timestamps. Rendered as `string` in the JSON schema
+- `array` - A list of values, detected from YAML sequences. Rendered as `array` in the JSON schema, with items referencing the documented type of the array's elements
+- `object` - A nested set of properties, detected from YAML mappings. Rendered as `object` in the JSON schema, with the documented sub-properties listed
+- `unknown` - Used when the type cannot be detected, for example when a property has no underlying YAML value. No type constraint is added to the JSON schema
