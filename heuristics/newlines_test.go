@@ -59,6 +59,26 @@ func TestRecutNewLines(t *testing.T) {
 				},
 			},
 		},
+		{
+			"LabelAndBracketContinuation",
+			args{
+				[]string{
+					" This option makes it so that the \"helm.sh/resource-policy\": keep",
+					" annotation is added to the CRD. This will prevent Helm from uninstalling",
+					" the CRD when the Helm release is uninstalled.",
+					" WARNING: when the CRDs are removed, all cert-manager custom resources",
+					" (Certificates, Issuers, ...) will be removed too by the garbage collector.",
+					" The value must be between 1 and 30 seconds. For more information, see",
+					" [Kubernetes GitHub repository](https://kubernetes.io/).",
+				},
+			},
+			want{
+				[]string{
+					"This option makes it so that the \"helm.sh/resource-policy\": keep annotation is added to the CRD. This will prevent Helm from uninstalling the CRD when the Helm release is uninstalled.",
+					"WARNING: when the CRDs are removed, all cert-manager custom resources (Certificates, Issuers, ...) will be removed too by the garbage collector. The value must be between 1 and 30 seconds. For more information, see [Kubernetes GitHub repository](https://kubernetes.io/).",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
