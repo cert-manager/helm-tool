@@ -127,3 +127,52 @@ func TestLoad_MissingFile(t *testing.T) {
 	_, err := Load(filepath.Join(t.TempDir(), "does-not-exist.yaml"), false)
 	require.Error(t, err)
 }
+
+func propertyPaths(doc *Document) []string {
+	var paths []string
+	for _, s := range doc.Sections {
+		for _, p := range s.Properties {
+			paths = append(paths, p.Path.String())
+		}
+	}
+	return paths
+}
+
+// Commented-out properties at the end of the file must be nested under the
+// mapping they are indented in, not treated as top-level.
+// See https://github.com/cert-manager/helm-tool/issues/25
+func TestLoad_TrailingCommentedPropertiesAreNested(t *testing.T) {
+	yaml := `
+podDisruptionBudget:
+  enabled: false
+
+  # +docs:property
+  # minAvailable: 1
+
+  # +docs:property
+  # maxUnavailable: 1
+`
+	path := writeTemp(t, yaml)
+	doc, err := Load(path, false)
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"podDisruptionBudget.enabled",
+		"podDisruptionBudget.minAvailable",
+		"podDisruptionBudget.maxUnavailable",
+	}, propertyPaths(doc))
+}
+
+// Column-0 comments at the end of the file stay top-level.
+func TestLoad_TrailingTopLevelCommentedProperty(t *testing.T) {
+	yaml := `
+podDisruptionBudget:
+  enabled: false
+
+# +docs:property
+# globalThing: 1
+`
+	path := writeTemp(t, yaml)
+	doc, err := Load(path, false)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"podDisruptionBudget.enabled", "globalThing"}, propertyPaths(doc))
+}
