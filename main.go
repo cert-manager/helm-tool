@@ -40,7 +40,11 @@ var (
 )
 
 var Cmd = cobra.Command{
-	Use: "helm-tool",
+	Use:   "helm-tool",
+	Short: "generate documentation and a JSON schema for a Helm values file, and lint it",
+	Long: `helm-tool reads a Helm values.yaml file and the comments around each
+property. It uses them to render documentation, generate values.schema.json,
+and lint the values against the chart templates.`,
 }
 
 var Render = cobra.Command{
@@ -81,7 +85,8 @@ var Inject = cobra.Command{
 }
 
 var Schema = cobra.Command{
-	Use: "schema",
+	Use:   "schema",
+	Short: "generate a values.schema.json for the values file and print it to stdout",
 	Run: func(cmd *cobra.Command, args []string) {
 		document, err := parser.Load(valuesFile, true)
 		if err != nil {
@@ -100,7 +105,8 @@ var Schema = cobra.Command{
 }
 
 var Lint = cobra.Command{
-	Use: "lint",
+	Use:   "lint",
+	Short: "check that every property in the values file is used by a template, and vice versa",
 	Run: func(cmd *cobra.Command, args []string) {
 		document, err := parser.Load(valuesFile, true)
 		if err != nil {
