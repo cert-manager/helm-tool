@@ -127,3 +127,34 @@ func TestLoad_MissingFile(t *testing.T) {
 	_, err := Load(filepath.Join(t.TempDir(), "does-not-exist.yaml"), false)
 	require.Error(t, err)
 }
+
+// Blank lines around a +docs:section tag must not change which properties
+// belong to the section. See https://github.com/cert-manager/helm-tool/issues/341.
+func TestLoad_SectionTagIgnoresSurroundingBlankLines(t *testing.T) {
+	const before = "# +docs:section=CRDs\ncrds:\n  # Install the CRDs.\n  enabled: true\n"
+	const after = "# The number of replicas.\nreplicaCount: 1\n"
+	want := []string{"CRDs", "crds.enabled", "Main", "replicaCount"}
+
+	for name, tag := range map[string]string{
+		"blank before and after": "\n# +docs:section=Main\n\n",
+		"blank after only":       "# +docs:section=Main\n\n",
+		"blank before only":      "\n# +docs:section=Main\n",
+		"no blank lines":         "# +docs:section=Main\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			doc, err := Load(writeTemp(t, before+tag+after), false)
+			require.NoError(t, err)
+
+			var got []string
+			for _, s := range doc.Sections {
+				if s.Name != "" {
+					got = append(got, s.Name)
+				}
+				for _, p := range s.Properties {
+					got = append(got, p.Path.String())
+				}
+			}
+			assert.Equal(t, want, got)
+		})
+	}
+}
