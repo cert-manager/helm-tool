@@ -93,15 +93,23 @@ type Node struct {
 }
 
 func Load(filename string, includeHidden bool) (*Document, error) {
-	file, err := os.Open(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
+	// Comments at the end of the file are attached to the document node by
+	// the YAML decoder, which loses the mapping they were indented under. A
+	// trailing top-level key makes the decoder attach them to the key they
+	// follow instead. Add one, decode, then remove it again.
+	// See https://github.com/cert-manager/helm-tool/issues/25
+	data = append(data, "\n"+sentinelKey+": null\n"...)
+
 	var root yaml.Node
-	if err := yaml.NewDecoder(file).Decode(&root); err != nil {
+	if err := yaml.Unmarshal(data, &root); err != nil {
 		return nil, err
 	}
+	removeSentinel(&root)
 
 	document := Document{Sections: make([]Section, 1)}
 	node := Node{
@@ -154,6 +162,24 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 	})
 
 	return &document, err
+}
+
+const sentinelKey = "__helm_tool_end_of_file__"
+
+// removeSentinel drops the sentinel key appended by Load from the root
+// mapping. Comments that precede it at column 0 are moved to the document
+// foot comment so they keep being treated as top-level comments.
+func removeSentinel(root *yaml.Node) {
+	if len(root.Content) == 0 || root.Content[0].Kind != yaml.MappingNode {
+		return
+	}
+	mapping := root.Content[0]
+	n := len(mapping.Content)
+	if n < 2 || mapping.Content[n-2].Value != sentinelKey {
+		return
+	}
+	root.FootComment = mapping.Content[n-2].HeadComment
+	mapping.Content = mapping.Content[:n-2]
 }
 
 func parseCommentsOntoDocument(path paths.Path, document *Document, comments []Comment) {
