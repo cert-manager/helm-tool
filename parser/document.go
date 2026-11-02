@@ -92,6 +92,18 @@ type Node struct {
 	RawNode      *yaml.Node
 }
 
+// sharedNodeFrame accumulates the properties documented while a shared
+// (non-end) node's subtree is being walked for the first time, relative to
+// that node's own path. Once the walk of that subtree finishes, the frame's
+// properties are cached so a later encounter of the same *yaml.Node — via a
+// different alias or "<<" merge site — can replay them at its own path
+// instead of either silently dropping them or re-walking the whole subtree
+// again.
+type sharedNodeFrame struct {
+	root       paths.Path
+	properties []Property
+}
+
 func Load(filename string, includeHidden bool) (*Document, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -109,10 +121,42 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 		HeadComments: parseComments(root.HeadComment),
 		FootComment:  parseComments(root.FootComment),
 	}
-	// visited prevents alias cycles (CWE-674 stack overflow) and alias fan-out
-	// (OOM) by stopping re-descent into any non-end node already on this walk.
-	visited := map[*yaml.Node]bool{}
-	err = walk(node, func(node Node) (bool, error) {
+
+	// memo caches the properties documented under a shared node's subtree,
+	// relative to the path it was first reached at, keyed by the underlying
+	// *yaml.Node so later encounters (via aliases or "<<" merge keys) can
+	// replay them rebased onto their own path.
+	memo := map[*yaml.Node][]Property{}
+	// inProgress guards against a node that, directly or transitively,
+	// refers to itself (CWE-674 stack overflow) — it is only ever true while
+	// that node's subtree is actively being walked for the first time.
+	inProgress := map[*yaml.Node]bool{}
+	// frames is a stack of shared nodes currently being walked for the first
+	// time, so any property found anywhere below them gets recorded
+	// (relative to each) for later replay. Diamond-shaped reuse (the same
+	// node reached from several sibling sites) is fine and expected; only a
+	// true cycle — re-entering a node already in this stack — is refused.
+	var frames []*sharedNodeFrame
+
+	// record appends a property to the document's current section and, for
+	// every shared node currently being walked for the first time, also
+	// records it (relative to that node's own path) for replay at future
+	// encounters.
+	record := func(prop Property) {
+		sectionIdx := len(document.Sections) - 1
+		document.Sections[sectionIdx].Properties = append(document.Sections[sectionIdx].Properties, prop)
+
+		for _, f := range frames {
+			if len(prop.Path) < len(f.root) {
+				continue
+			}
+			rel := prop
+			rel.Path = append(paths.Path{}, prop.Path[len(f.root):]...)
+			f.properties = append(f.properties, rel)
+		}
+	}
+
+	err = walk(node, func(node Node) (bool, func(), error) {
 		comment := pop(&node.HeadComments)
 
 		parseCommentsOntoDocument(node.Path.Parent(), &document, node.HeadComments)
@@ -120,12 +164,12 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 
 		// If we have a comment instructing us to skip this node, obey it
 		if comment.Tags.GetBool(TagIgnore) {
-			return true, nil
+			return true, nil, nil
 		}
 
 		// If we have a comment instructing us to hide this node, obey it if we are not including hidden nodes
 		if comment.Tags.GetBool(TagHidden) && !includeHidden {
-			return true, nil
+			return true, nil, nil
 		}
 
 		// An end node is a node we find a property at, this is usually a scalar
@@ -133,24 +177,46 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 		// +docs:property tag (or if they have no values).
 		if !isEndNode(node, comment) {
 			parseCommentsOntoDocument(node.Path.Parent(), &document, []Comment{comment})
-			// Only guard recursion into children — end nodes are always safe to
-			// visit multiple times (scalars have no children to cycle through).
-			if visited[node.RawNode] {
-				return true, nil
+
+			// We've fully documented this exact node before, via a different
+			// alias or "<<" merge site — replay what we found there instead
+			// of silently dropping it.
+			if cached, ok := memo[node.RawNode]; ok {
+				for _, p := range cached {
+					p.Path = append(append(paths.Path{}, node.Path...), p.Path...)
+					record(p)
+				}
+				return true, nil, nil
 			}
-			visited[node.RawNode] = true
-			return false, nil
+
+			// This node is already being walked further up the current call
+			// stack — a genuine cycle (e.g. a mapping merging itself).
+			// Stop here rather than recursing forever.
+			if inProgress[node.RawNode] {
+				return true, nil, nil
+			}
+
+			inProgress[node.RawNode] = true
+			frame := &sharedNodeFrame{root: node.Path}
+			frames = append(frames, frame)
+
+			after := func() {
+				memo[node.RawNode] = frame.properties
+				delete(inProgress, node.RawNode)
+				frames = frames[:len(frames)-1]
+			}
+
+			return false, after, nil
 		}
 
-		sectionIdx := len(document.Sections) - 1
-		document.Sections[sectionIdx].Properties = append(document.Sections[sectionIdx].Properties, Property{
+		record(Property{
 			Path:        node.Path,
 			Description: comment,
 			Type:        getTypeOf(node, comment),
 			Default:     getDefaultValue(node, comment),
 		})
 
-		return true, nil
+		return true, nil, nil
 	})
 
 	return &document, err
@@ -243,12 +309,22 @@ func parseCommentsOntoDocument(path paths.Path, document *Document, comments []C
 	}
 }
 
-func walk(root Node, fn func(node Node) (bool, error)) error {
+// walk performs a depth-first traversal of a yaml node tree, calling fn for
+// every node encountered. fn reports whether to stop descending into this
+// node's children and may optionally return an "after" function, which is
+// called once this node and all of its descendants have been fully visited —
+// this lets the caller pair up per-node setup (e.g. entering a subtree for
+// the first time) with a matching cleanup step.
+func walk(root Node, fn func(node Node) (stop bool, after func(), err error)) error {
 	// Call the function for every node, we the method can decide to stop
 	// walking this branch as part of this call
-	stop, err := fn(root)
+	stop, after, err := fn(root)
 	if err != nil {
 		return err
+	}
+
+	if after != nil {
+		defer after()
 	}
 
 	if stop {
@@ -271,15 +347,12 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 			}
 		}
 	case yaml.MappingNode:
-		for i := 0; i < len(root.RawNode.Content); i += 2 {
-			keyNode := root.RawNode.Content[i]
-			valueNode := root.RawNode.Content[i+1]
-
+		for _, entry := range mappingEntries(root.RawNode, map[*yaml.Node]bool{}) {
 			n := Node{
-				Path:         root.Path.WithProperty(keyNode.Value),
-				HeadComments: parseComments(keyNode.HeadComment),
-				FootComment:  parseComments(keyNode.FootComment),
-				RawNode:      valueNode,
+				Path:         root.Path.WithProperty(entry.Key.Value),
+				HeadComments: parseComments(entry.Key.HeadComment),
+				FootComment:  parseComments(entry.Key.FootComment),
+				RawNode:      entry.Value,
 			}
 
 			if err := walk(n, fn); err != nil {
@@ -313,6 +386,91 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 	}
 
 	return nil
+}
+
+// mappingEntry is a resolved key/value pair from a mapping node, after
+// expanding any "<<" merge keys.
+type mappingEntry struct {
+	Key   *yaml.Node
+	Value *yaml.Node
+}
+
+// isMergeKey returns true if n is a "<<" merge key, per the YAML merge key
+// convention (not part of the core YAML spec, but widely supported).
+func isMergeKey(n *yaml.Node) bool {
+	return n.Kind == yaml.ScalarNode && n.Value == "<<" && (n.Tag == "" || n.Tag == "!" || n.ShortTag() == "!!merge")
+}
+
+// resolveMergeTargets expands a merge key's value into the mapping nodes it
+// refers to. The value may be a single mapping, an alias to one, or a
+// sequence of either (for merging in more than one mapping at once).
+func resolveMergeTargets(n *yaml.Node) []*yaml.Node {
+	switch n.Kind {
+	case yaml.AliasNode:
+		return resolveMergeTargets(n.Alias)
+	case yaml.MappingNode:
+		return []*yaml.Node{n}
+	case yaml.SequenceNode:
+		var out []*yaml.Node
+		for _, item := range n.Content {
+			out = append(out, resolveMergeTargets(item)...)
+		}
+		return out
+	default:
+		// Not a valid merge target, e.g. an alias to a scalar. Ignore it
+		// rather than failing the whole document.
+		return nil
+	}
+}
+
+// mappingEntries returns a mapping node's effective key/value pairs with any
+// "<<" merge keys expanded in place. Explicit keys always take precedence
+// over merged-in ones regardless of declaration order, and where more than
+// one merge source defines the same key, the earliest one wins — both match
+// the YAML merge key convention.
+//
+// inProgress guards against a merge target that (directly or transitively)
+// merges itself, which would otherwise recurse forever.
+func mappingEntries(n *yaml.Node, inProgress map[*yaml.Node]bool) []mappingEntry {
+	if inProgress[n] {
+		return nil
+	}
+	inProgress[n] = true
+	defer delete(inProgress, n)
+
+	explicit := map[string]bool{}
+	for i := 0; i < len(n.Content); i += 2 {
+		if key := n.Content[i]; !isMergeKey(key) {
+			explicit[key.Value] = true
+		}
+	}
+
+	seen := map[string]bool{}
+	var entries []mappingEntry
+
+	for i := 0; i < len(n.Content); i += 2 {
+		key, value := n.Content[i], n.Content[i+1]
+
+		if !isMergeKey(key) {
+			if !seen[key.Value] {
+				seen[key.Value] = true
+				entries = append(entries, mappingEntry{Key: key, Value: value})
+			}
+			continue
+		}
+
+		for _, target := range resolveMergeTargets(value) {
+			for _, entry := range mappingEntries(target, inProgress) {
+				if explicit[entry.Key.Value] || seen[entry.Key.Value] {
+					continue
+				}
+				seen[entry.Key.Value] = true
+				entries = append(entries, entry)
+			}
+		}
+	}
+
+	return entries
 }
 
 // isEndNode returns true if the yaml node is considered one that should
