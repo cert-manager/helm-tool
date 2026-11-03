@@ -116,7 +116,6 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 		comment := pop(&node.HeadComments)
 
 		parseCommentsOntoDocument(node.Path.Parent(), &document, node.HeadComments)
-		defer parseCommentsOntoDocument(node.Path.Parent(), &document, node.FootComment)
 
 		// If we have a comment instructing us to skip this node, obey it
 		if comment.Tags.GetBool(TagIgnore) {
@@ -142,6 +141,15 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 			return false, nil
 		}
 
+		// With no blank line between them, a +docs:section tag and the
+		// property's description arrive as one comment block. Start the
+		// section here so the tag is not lost with the description.
+		if comment.Tags.GetBool(TagSection) {
+			document.Sections = append(document.Sections, Section{
+				Name: comment.Tags.GetString(TagSection),
+			})
+		}
+
 		sectionIdx := len(document.Sections) - 1
 		document.Sections[sectionIdx].Properties = append(document.Sections[sectionIdx].Properties, Property{
 			Path:        node.Path,
@@ -151,6 +159,10 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 		})
 
 		return true, nil
+	}, func(node Node) {
+		// Foot comments come after the node's children in the file, so they
+		// must be applied after the children have been walked.
+		parseCommentsOntoDocument(node.Path.Parent(), &document, node.FootComment)
 	})
 
 	return &document, err
@@ -243,9 +255,12 @@ func parseCommentsOntoDocument(path paths.Path, document *Document, comments []C
 	}
 }
 
-func walk(root Node, fn func(node Node) (bool, error)) error {
-	// Call the function for every node, we the method can decide to stop
-	// walking this branch as part of this call
+// walk calls fn for every node before its children, and after for every node
+// once its children have been walked. fn can stop the walk of a branch by
+// returning true.
+func walk(root Node, fn func(node Node) (bool, error), after func(node Node)) error {
+	defer after(root)
+
 	stop, err := fn(root)
 	if err != nil {
 		return err
@@ -266,7 +281,7 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 				RawNode:      node,
 			}
 
-			if err := walk(n, fn); err != nil {
+			if err := walk(n, fn, after); err != nil {
 				return err
 			}
 		}
@@ -282,7 +297,7 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 				RawNode:      valueNode,
 			}
 
-			if err := walk(n, fn); err != nil {
+			if err := walk(n, fn, after); err != nil {
 				return err
 			}
 		}
@@ -295,7 +310,7 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 				FootComment:  parseComments(node.FootComment),
 			}
 
-			if err := walk(n, fn); err != nil {
+			if err := walk(n, fn, after); err != nil {
 				return err
 			}
 		}
@@ -307,7 +322,7 @@ func walk(root Node, fn func(node Node) (bool, error)) error {
 			RawNode:      root.RawNode.Alias,
 		}
 
-		if err := walk(n, fn); err != nil {
+		if err := walk(n, fn, after); err != nil {
 			return err
 		}
 	}
