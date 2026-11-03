@@ -24,6 +24,10 @@ import (
 
 var numericListExp = regexp.MustCompile(`^[0-9]+\s*[-\.]$`)
 
+// labelExp matches lines starting with an upper case label such as
+// "WARNING:" or "NOTE:", which authors put on their own line.
+var labelExp = regexp.MustCompile(`^[A-Z]{2,}:`)
+
 // RecutNewLines attempts to recut new lines that may have been wrapped to
 // remove the wrapping, while trying to preserve intentional new lines for
 // lists, code etc.
@@ -77,13 +81,25 @@ func RecutNewLines(lines []string) []string {
 		}
 
 		// If we start with a non alphanumeric character then assume the
-		// new line was intended (it could be a list for example)
-		if c := firstChar(trimmedLine); !unicode.IsLetter(c) && !unicode.IsNumber(c) {
+		// new line was intended (it could be a list for example). Opening
+		// brackets and quotes are the exception: "(Certificates, ...)" or
+		// "[link](url)" continue the wrapped sentence above.
+		if c := firstChar(trimmedLine); !unicode.IsLetter(c) && !unicode.IsNumber(c) && !strings.ContainsRune(`(["'`, c) {
 			if len(currentLine) != 0 {
 				parsedLines = append(parsedLines, strings.Join(currentLine, " "))
 			}
 			parsedLines = append(parsedLines, lineWithoutLeadingSpaces)
 			currentLine = nil
+			continue
+		}
+
+		// If we start with a label such as "WARNING:", the new line is
+		// intended, but the lines that follow may still be wrapped onto it
+		if labelExp.MatchString(trimmedLine) {
+			if len(currentLine) != 0 {
+				parsedLines = append(parsedLines, strings.Join(currentLine, " "))
+			}
+			currentLine = []string{lineWithoutLeadingSpaces}
 			continue
 		}
 
