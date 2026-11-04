@@ -17,6 +17,7 @@ limitations under the License.
 package parser
 
 import (
+	"bytes"
 	"log"
 	"os"
 	"strings"
@@ -103,7 +104,17 @@ func Load(filename string, includeHidden bool) (*Document, error) {
 	// trailing top-level key makes the decoder attach them to the key they
 	// follow instead. Add one, decode, then remove it again.
 	// See https://github.com/cert-manager/helm-tool/issues/25
-	data = append(data, "\n"+sentinelKey+": null\n"...)
+	//
+	// UTF-16 files (which the decoder detects by their byte order mark) are
+	// left alone, because appending UTF-8 bytes would corrupt them. The
+	// newline is only added when the file lacks one, so a trailing keep-chomp
+	// block scalar (|+) does not gain an extra line.
+	if !bytes.HasPrefix(data, []byte("\xff\xfe")) && !bytes.HasPrefix(data, []byte("\xfe\xff")) {
+		if len(data) > 0 && data[len(data)-1] != '\n' {
+			data = append(data, '\n')
+		}
+		data = append(data, sentinelKey+": null\n"...)
+	}
 
 	var root yaml.Node
 	if err := yaml.Unmarshal(data, &root); err != nil {

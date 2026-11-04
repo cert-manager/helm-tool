@@ -207,3 +207,28 @@ podDisruptionBudget:
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"podDisruptionBudget.enabled", "globalThing"}, propertyPaths(doc))
 }
+
+// The sentinel appended by Load must not change the value of a keep-chomp
+// block scalar at the end of the file. The expected defaults are what Load
+// produced before the sentinel was introduced.
+func TestLoad_TrailingKeepChompScalarUnchanged(t *testing.T) {
+	for name, tc := range map[string]struct{ in, want string }{
+		"single trailing newline": {"a: |+\n  x\n", "|\n  x"},
+		"blank lines after":       {"a: |+\n  x\n\n\n", "|+\n  x"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			doc, err := Load(writeTemp(t, tc.in), false)
+			require.NoError(t, err)
+			require.Len(t, doc.Sections[0].Properties, 1)
+			assert.Equal(t, tc.want, doc.Sections[0].Properties[0].Default)
+		})
+	}
+}
+
+// UTF-16 files must still load; the sentinel is not appended to them.
+func TestLoad_UTF16(t *testing.T) {
+	in := "\xff\xfea\x00:\x00 \x001\x00\n\x00" // UTF-16LE with BOM: "a: 1\n"
+	doc, err := Load(writeTemp(t, in), false)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"a"}, propertyPaths(doc))
+}
