@@ -158,3 +158,77 @@ func TestLoad_SectionTagIgnoresSurroundingBlankLines(t *testing.T) {
 		})
 	}
 }
+
+func propertyPaths(doc *Document) []string {
+	var paths []string
+	for _, s := range doc.Sections {
+		for _, p := range s.Properties {
+			paths = append(paths, p.Path.String())
+		}
+	}
+	return paths
+}
+
+// Commented-out properties at the end of the file must be nested under the
+// mapping they are indented in, not treated as top-level.
+// See https://github.com/cert-manager/helm-tool/issues/25
+func TestLoad_TrailingCommentedPropertiesAreNested(t *testing.T) {
+	yaml := `
+podDisruptionBudget:
+  enabled: false
+
+  # +docs:property
+  # minAvailable: 1
+
+  # +docs:property
+  # maxUnavailable: 1
+`
+	path := writeTemp(t, yaml)
+	doc, err := Load(path, false)
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"podDisruptionBudget.enabled",
+		"podDisruptionBudget.minAvailable",
+		"podDisruptionBudget.maxUnavailable",
+	}, propertyPaths(doc))
+}
+
+// Column-0 comments at the end of the file stay top-level.
+func TestLoad_TrailingTopLevelCommentedProperty(t *testing.T) {
+	yaml := `
+podDisruptionBudget:
+  enabled: false
+
+# +docs:property
+# globalThing: 1
+`
+	path := writeTemp(t, yaml)
+	doc, err := Load(path, false)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"podDisruptionBudget.enabled", "globalThing"}, propertyPaths(doc))
+}
+
+// The sentinel appended by Load must not change the value of a keep-chomp
+// block scalar at the end of the file. The expected defaults are what Load
+// produced before the sentinel was introduced.
+func TestLoad_TrailingKeepChompScalarUnchanged(t *testing.T) {
+	for name, tc := range map[string]struct{ in, want string }{
+		"single trailing newline": {"a: |+\n  x\n", "|\n  x"},
+		"blank lines after":       {"a: |+\n  x\n\n\n", "|+\n  x"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			doc, err := Load(writeTemp(t, tc.in), false)
+			require.NoError(t, err)
+			require.Len(t, doc.Sections[0].Properties, 1)
+			assert.Equal(t, tc.want, doc.Sections[0].Properties[0].Default)
+		})
+	}
+}
+
+// UTF-16 files must still load; the sentinel is not appended to them.
+func TestLoad_UTF16(t *testing.T) {
+	in := "\xff\xfea\x00:\x00 \x001\x00\n\x00" // UTF-16LE with BOM: "a: 1\n"
+	doc, err := Load(writeTemp(t, in), false)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"a"}, propertyPaths(doc))
+}
